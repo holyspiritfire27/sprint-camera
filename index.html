@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>田徑起跑錄影計時器</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; }
+        #camera-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 偵測區域：右上角，1/8大小，3:1比例 */
+        #roi-box {
+            position: absolute;
+            top: 5%;
+            right: 5%;
+            width: 30vw; /* 依據螢幕比例調整 */
+            height: 10vw;
+            border: 3px dashed #00FF00;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        /* 計時器 UI */
+        #timer-display {
+            position: absolute;
+            top: 5%;
+            right: 5%;
+            font-size: 3rem;
+            font-family: monospace;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px #000;
+            display: none;
+            z-index: 10;
+        }
+
+        #controls { position: absolute; bottom: 10%; width: 100%; text-align: center; z-index: 10; }
+        button { padding: 15px 30px; font-size: 1.2rem; border-radius: 8px; border: none; background: #FF3B30; color: white; margin: 5px; cursor: pointer;}
+        
+        /* 播放區域 */
+        #playback-container { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; flex-direction: column; align-items: center; justify-content: center; z-index: 20;}
+        #playback-video { width: 100%; max-height: 70vh; }
+        .playback-controls { margin-top: 20px; }
+        .btn-blue { background: #007AFF; }
+    </style>
+</head>
+<body>
+
+    <div id="camera-container">
+        <video id="camera-feed" autoplay playsinline muted></video>
+        <div id="roi-box"></div>
+        <div id="timer-display">00.000</div>
+        
+        <canvas id="process-canvas" style="display:none;"></canvas>
+
+        <div id="controls">
+            <button id="start-detect-btn">1. 開始偵測起跑</button>
+            <button id="stop-record-btn" style="display:none;">2. 結束錄影</button>
+        </div>
+    </div>
+
+    <div id="playback-container">
+        <video id="playback-video" controls playsinline></video>
+        <div class="playback-controls">
+            <button class="btn-blue" id="slow-mo-btn">慢動作播放 (0.25x)</button>
+            <button class="btn-blue" id="normal-mo-btn">正常速度 (1.0x)</button>
+            <button id="restart-btn">重新測試</button>
+        </div>
+    </div>
+
+<script>
+    const cameraFeed = document.getElementById('camera-feed');
+    const roiBox = document.getElementById('roi-box');
+    const timerDisplay = document.getElementById('timer-display');
+    const startDetectBtn = document.getElementById('start-detect-btn');
+    const stopRecordBtn = document.getElementById('stop-record-btn');
+    const processCanvas = document.getElementById('process-canvas');
+    const ctx = processCanvas.getContext('2d', { willReadFrequently: true });
+    
+    // 播放相關
+    const playbackContainer = document.getElementById('playback-container');
+    const playbackVideo = document.getElementById('playback-video');
+    const cameraContainer = document.getElementById('camera-container');
+
+    let mediaRecorder;
+    let recordedChunks = [];
+    let isDetecting = false;
+    let isRecording = false;
+    let timerInterval;
+    let startTime;
+    let previousFrameData = null;
+
+    // 1. 初始化相機 (強制使用後鏡頭)
+    async function initCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false // 若需錄音可改為 true，但 iOS Safari 有時對錄音權限要求較嚴格
+            });
+            cameraFeed.srcObject = stream;
+        } catch (err) {
+            alert("無法存取相機，請確認已給予權限或使用 HTTPS 網頁。錯誤：" + err);
+        }
+    }
+
+    // 2. 影像偵測邏輯 (偵測閃光或動作)
+    function detectStartSignal() {
+        if (!isDetecting) return;
+
+        // 設定 Canvas 大小與偵測區域 (ROI) 相同
+        const videoWidth = cameraFeed.videoWidth;
+        const videoHeight = cameraFeed.videoHeight;
+        
+        // 映射右上角 3:1 區域的像素座標
+        const roiW = videoWidth * 0.3;
+        const roiH = roiW / 3;
+        const roiX = videoWidth - roiW - (videoWidth * 0.05); // 靠右
+        const roiY = videoHeight * 0.05; // 靠上
+
+        processCanvas.width = roiW;
+        processCanvas.height = roiH;
+
+        // 擷取該區域的影像
+        ctx.drawImage(cameraFeed, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
+        const frameData = ctx.getImageData(0, 0, roiW, roiH).data;
+
+        let totalBrightness = 0;
+        let totalDifference = 0;
+
+        // 採樣計算 (每 4 個像素取 1 個以提升效能)
+        for (let i = 0; i < frameData.length; i += 16) {
+            let r = frameData[i], g = frameData[i+1], b = frameData[i+2];
+            let brightness = (r + g + b) / 3;
+            totalBrightness += brightness;
+
+            if (previousFrameData) {
+                let diff = Math.abs(r - previousFrameData[i]) + 
+                           Math.abs(g - previousFrameData[i+1]) + 
+                           Math.abs(b - previousFrameData[i+2]);
+                totalDifference += diff;
+            }
+        }
+
+        const sampleCount = frameData.length / 16;
+        const avgBrightness = totalBrightness / sampleCount;
+        const avgDifference = previousFrameData ? (totalDifference / sampleCount) : 0;
+
+        // ★ 核心觸發條件：亮度突然極高(閃光) 或 像素變動劇烈(手向下揮)
+        // 這些閾值(180, 40)可能需要根據戶外陽光或室內環境微調
+        if (avgBrightness > 200 || avgDifference > 45) {
+            triggerStart();
+        } else {
+            previousFrameData = frameData;
+            requestAnimationFrame(detectStartSignal);
+        }
+    }
+
+    // 3. 觸發起跑：隱藏方格，顯示碼錶，開始錄影
+    function triggerStart() {
+        isDetecting = false;
+        
+        // UI 切換
+        roiBox.style.display = 'none';
+        timerDisplay.style.display = 'block';
+        startDetectBtn.style.display = 'none';
+        stopRecordBtn.style.display = 'inline-block';
+
+        // 啟動碼錶
+        startTime = performance.now();
+        updateTimer();
+
+        // 啟動錄影
+        recordedChunks = [];
+        const stream = cameraFeed.srcObject;
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); // 若 iOS 不支援 webm，會退回預設 mp4
+        mediaRecorder.ondataavailable = event => { if (event.data.size > 0) recordedChunks.push(event.data); };
+        mediaRecorder.onstop = showPlayback;
+        mediaRecorder.start();
+        isRecording = true;
+    }
+
+    // 4. 更新碼錶 (千分秒)
+    function updateTimer() {
+        if (!isRecording) return;
+        let elapsedTime = performance.now() - startTime;
+        let seconds = Math.floor(elapsedTime / 1000);
+        let milliseconds = Math.floor(elapsedTime % 1000);
+        
+        // 格式化為 00.000
+        let secStr = seconds.toString().padStart(2, '0');
+        let msStr = milliseconds.toString().padStart(3, '0');
+        timerDisplay.innerText = `${secStr}.${msStr}`;
+        
+        requestAnimationFrame(updateTimer);
+    }
+
+    // 5. 結束錄影並產生影片
+    stopRecordBtn.addEventListener('click', () => {
+        isRecording = false;
+        if (mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+    });
+
+    // 6. 顯示重播畫面
+    function showPlayback() {
+        cameraContainer.style.display = 'none';
+        playbackContainer.style.display = 'flex';
+
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const videoURL = URL.createObjectURL(blob);
+        playbackVideo.src = videoURL;
+    }
+
+    // 7. 控制按鈕邏輯
+    startDetectBtn.addEventListener('click', () => {
+        isDetecting = true;
+        previousFrameData = null;
+        startDetectBtn.innerText = "偵測中...等待信號";
+        detectStartSignal();
+    });
+
+    document.getElementById('slow-mo-btn').addEventListener('click', () => {
+        playbackVideo.playbackRate = 0.25; // 慢動作
+        playbackVideo.play();
+    });
+
+    document.getElementById('normal-mo-btn').addEventListener('click', () => {
+        playbackVideo.playbackRate = 1.0;
+        playbackVideo.play();
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+        playbackContainer.style.display = 'none';
+        cameraContainer.style.display = 'flex';
+        roiBox.style.display = 'block';
+        timerDisplay.style.display = 'none';
+        startDetectBtn.style.display = 'inline-block';
+        startDetectBtn.innerText = "1. 開始偵測起跑";
+        stopRecordBtn.style.display = 'none';
+        timerDisplay.innerText = "00.000";
+    });
+
+    // 載入時啟動相機
+    window.onload = initCamera;
+
+</script>
+</body>
+</html>
