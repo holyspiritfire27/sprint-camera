@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>短跑計時器 Pro V3</title>
+    <title>短跑計時 Pro V4</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; touch-action: none; }
         
-        /* 頂端控制列 */
         #top-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 10px; box-sizing: border-box; background: rgba(0,0,0,0.7); z-index: 20; display: flex; justify-content: space-between; align-items: center; }
         #camera-select { padding: 8px; font-size: 1rem; border-radius: 5px; max-width: 45%; background: #333; color: white; border: 1px solid #555; }
-        #status-msg { color: #00FF00; font-weight: bold; font-size: 0.9rem; }
+        #status-msg { color: #00FF00; font-weight: bold; font-size: 1rem; }
 
-        /* 錄影燈與偵測狀態 */
         #recording-indicator { position: absolute; top: 60px; left: 20px; color: #FF3B30; font-weight: bold; font-size: 1rem; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 5px; display: none; z-index: 30; animation: blink 1s infinite; }
         @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.4;} 100% {opacity: 1;} }
 
@@ -30,14 +28,11 @@
         #controls { position: absolute; bottom: 5%; width: 100%; text-align: center; z-index: 20; }
         #stop-record-btn { padding: 15px 30px; font-size: 1.3rem; font-weight: bold; border-radius: 10px; border: none; background: #FF3B30; color: white; display: none; }
 
-        /* --- 播放器樣式 --- */
+        /* 播放器樣式 */
         #playback-container { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
         #playback-video-wrapper { position: relative; width: 100%; display: flex; justify-content: center; align-items: center; }
         #playback-video { width: 100%; max-height: 75vh; }
-        
-        /* 中間的大播放按鈕 */
         #play-pause-overlay { position: absolute; font-size: 5rem; color: rgba(255,255,255,0.6); display: none; pointer-events: none; z-index: 60; }
-
         .playback-controls { width: 90%; margin-top: 15px; text-align: center; }
         #seek-bar { width: 100%; height: 25px; margin-bottom: 15px; }
         .btn-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
@@ -57,7 +52,7 @@
         <button id="ready-btn">預備</button>
         <div id="timer-display">00.000</div>
         <canvas id="process-canvas" style="display:none;"></canvas>
-        <div id="controls"><button id="stop-record-btn">結束錄影並回放</button></div>
+        <div id="controls"><button id="stop-record-btn">結束測驗並回放</button></div>
     </div>
 
     <div id="playback-container">
@@ -68,10 +63,10 @@
         <div class="playback-controls">
             <input type="range" id="seek-bar" value="0" step="0.01">
             <div class="btn-row">
-                <button class="btn-blue" id="slow-01-btn">0.1x 慢速</button>
+                <button class="btn-blue" id="slow-01-btn">0.1x 極慢</button>
                 <button class="btn-blue" id="slow-25-btn">0.25x 慢速</button>
                 <button class="btn-blue" id="normal-btn">1.0x 正常</button>
-                <button class="btn-blue" style="background:#555;" id="restart-btn">重新測試</button>
+                <button class="btn-blue" style="background:#555;" id="restart-btn">重新測驗</button>
             </div>
         </div>
     </div>
@@ -96,7 +91,6 @@
     let startTime, detectionStartTime, prevFrameData = null;
     let mappedX, mappedY, mappedW, mappedH;
 
-    // 1. 初始化相機
     async function initCamera(deviceId = null) {
         if (currentStream) currentStream.getTracks().forEach(t => t.stop());
         const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" }, audio: false };
@@ -119,7 +113,6 @@
     }
     cameraSelect.onchange = (e) => initCamera(e.target.value);
 
-    // 2. 畫框邏輯
     let startX, startY, isDrawing = false;
     document.getElementById('camera-container').addEventListener('touchstart', (e) => {
         if (isDetecting) return;
@@ -147,6 +140,7 @@
             readyBtn.style.top = (topPos > window.innerHeight - 80 ? parseInt(roiBox.style.top) - 60 : topPos) + 'px';
             readyBtn.style.display = 'block';
             statusMsg.innerText = "已錄影，請點預備";
+            statusMsg.style.color = "#00FF00";
         } else { roiBox.style.display = 'none'; }
     });
 
@@ -161,25 +155,29 @@
         stopRecordBtn.style.display = 'inline-block';
     }
 
-    // 3. 偵測核心
     readyBtn.onclick = (e) => {
         e.stopPropagation();
+        
+        // 確保座標正確對應相機畫素
         const vW = cameraFeed.videoWidth, vH = cameraFeed.videoHeight;
         const eW = cameraFeed.clientWidth, eH = cameraFeed.clientHeight;
         const scale = Math.min(eW / vW, eH / vH);
         const offsetX = (eW - vW * scale) / 2, offsetY = (eH - vH * scale) / 2;
         const rect = roiBox.getBoundingClientRect();
         
-        mappedX = (rect.left - offsetX) / scale;
-        mappedY = (rect.top - offsetY) / scale;
-        mappedW = rect.width / scale;
-        mappedH = rect.height / scale;
+        mappedX = Math.max(0, (rect.left - offsetX) / scale);
+        mappedY = Math.max(0, (rect.top - offsetY) / scale);
+        mappedW = Math.min(vW, rect.width / scale);
+        mappedH = Math.min(vH, rect.height / scale);
 
         processCanvas.width = mappedW; processCanvas.height = mappedH;
+        
         readyBtn.style.display = 'none';
         cameraSelect.style.display = 'none';
-        statusMsg.innerText = "偵測中...等待起跑";
-        statusMsg.style.color = "#FF9500";
+        
+        // 進入穩定緩衝期提示
+        statusMsg.innerText = "相機穩定中(手請離開)...";
+        statusMsg.style.color = "#FFFF00";
         
         detectionStartTime = performance.now();
         isDetecting = true;
@@ -191,26 +189,50 @@
         if (!isDetecting) return;
         ctx.drawImage(cameraFeed, mappedX, mappedY, mappedW, mappedH, 0, 0, mappedW, mappedH);
         const frame = ctx.getImageData(0, 0, mappedW, mappedH).data;
+        const elapsed = performance.now() - detectionStartTime;
 
-        if (performance.now() - detectionStartTime > 800) { // 避開按按鈕晃動
-            let diff = 0;
-            if (prevFrameData) {
-                for (let i = 0; i < frame.length; i += 32) { // 抽樣比對提高效能
-                    diff += Math.abs(frame[i] - prevFrameData[i]);
-                }
-                const threshold = (frame.length / 32) * 30; // 靈敏度門檻
-                if (diff > threshold) { triggerTimer(); return; }
-            }
+        // ★ 核心除錯：前 2 秒鐘只記憶背景，絕對不觸發計時！
+        if (elapsed < 2000) {
             prevFrameData = frame;
+            requestAnimationFrame(detectLoop);
+            return;
+        } else if (elapsed > 2000 && elapsed < 2100) {
+             statusMsg.innerText = "🟢 偵測中...等待發令";
+             statusMsg.style.color = "#00FF00";
         }
+
+        let totalDiff = 0;
+        let count = 0;
+        
+        // 演算法強化：計算像素亮度的絕對差值
+        if (prevFrameData) {
+            for (let i = 0; i < frame.length; i += 16) { // 每 4 個像素取樣
+                let brightness = (frame[i] + frame[i+1] + frame[i+2]) / 3;
+                let pBrightness = (prevFrameData[i] + prevFrameData[i+1] + prevFrameData[i+2]) / 3;
+                totalDiff += Math.abs(brightness - pBrightness);
+                count++;
+            }
+            
+            let avgDiff = totalDiff / count;
+
+            // 靈敏度門檻 (數值越大越不容易誤觸)。若現場還是太靈敏可改為 50 或 60
+            if (avgDiff > 45) { 
+                triggerTimer(); 
+                return; 
+            }
+        }
+        
+        prevFrameData = frame;
         requestAnimationFrame(detectLoop);
     }
 
     function triggerTimer() {
         isDetecting = false;
+        // 只有在真正觸發後，偵測框才會消失
         roiBox.style.display = 'none';
-        timerDisplay.style.display = 'block';
         statusMsg.style.display = 'none';
+        timerDisplay.style.display = 'block';
+        
         startTime = performance.now();
         updateTimer();
     }
@@ -228,7 +250,7 @@
         if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     };
 
-    // 4. 回放器邏輯
+    // 回放器控制
     function showPlayback() {
         document.getElementById('camera-container').style.display = 'none';
         document.getElementById('playback-container').style.display = 'flex';
@@ -240,7 +262,6 @@
     playbackVideo.ontimeupdate = () => { seekBar.value = playbackVideo.currentTime; };
     seekBar.oninput = () => { playbackVideo.currentTime = seekBar.value; };
 
-    // 點擊影片區域 = 暫停/播放
     document.getElementById('playback-video-wrapper').onclick = () => {
         if (playbackVideo.paused) {
             playbackVideo.play();
@@ -256,10 +277,7 @@
     document.getElementById('slow-01-btn').onclick = () => { playbackVideo.playbackRate = 0.1; playbackVideo.play(); };
     document.getElementById('slow-25-btn').onclick = () => { playbackVideo.playbackRate = 0.25; playbackVideo.play(); };
     document.getElementById('normal-btn').onclick = () => { playbackVideo.playbackRate = 1.0; playbackVideo.play(); };
-    
-    document.getElementById('restart-btn').onclick = () => {
-        location.reload(); // 最徹底的重新開始方式
-    };
+    document.getElementById('restart-btn').onclick = () => { location.reload(); };
 
     window.onload = () => initCamera();
 </script>
