@@ -240,7 +240,7 @@
             
             // 只要框框內有超過 "20 個" 畫素發生劇烈變化，就觸發
             // 若在戶外測試太靈敏，可將 20 提高到 40；若抓不到白旗，可降到 10
-            if (changedPixels > 10) { 
+            if (changedPixels > 5) { 
                 triggerTimer(); 
                 return; 
             }
