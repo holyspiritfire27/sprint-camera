@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>短跑計時 Pro V4</title>
+    <title>短跑計時 Pro V5 (遠距版)</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; touch-action: none; }
         
@@ -21,22 +21,22 @@
         #roi-box { position: absolute; border: 3px dashed #00FF00; background: rgba(0, 255, 0, 0.15); box-sizing: border-box; z-index: 10; display: none; pointer-events: none; }
 
         /* 預備按鈕 */
-        #ready-btn { position: absolute; padding: 12px 24px; font-size: 1.2rem; font-weight: bold; border-radius: 10px; border: 2px solid white; background: #FF9500; color: white; z-index: 40; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #ready-btn { position: absolute; padding: 12px 24px; font-size: 1.2rem; font-weight: bold; border-radius: 10px; border: 2px solid white; background: #FF9500; color: white; z-index: 40; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; }
 
         #timer-display { position: absolute; top: 60px; right: 20px; font-size: 3.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 4px #000; display: none; z-index: 10; font-weight: bold; }
 
         #controls { position: absolute; bottom: 5%; width: 100%; text-align: center; z-index: 20; }
-        #stop-record-btn { padding: 15px 30px; font-size: 1.3rem; font-weight: bold; border-radius: 10px; border: none; background: #FF3B30; color: white; display: none; }
+        #stop-record-btn { padding: 15px 30px; font-size: 1.3rem; font-weight: bold; border-radius: 10px; border: none; background: #FF3B30; color: white; display: none; cursor: pointer; }
 
         /* 播放器樣式 */
         #playback-container { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
-        #playback-video-wrapper { position: relative; width: 100%; display: flex; justify-content: center; align-items: center; }
+        #playback-video-wrapper { position: relative; width: 100%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         #playback-video { width: 100%; max-height: 75vh; }
         #play-pause-overlay { position: absolute; font-size: 5rem; color: rgba(255,255,255,0.6); display: none; pointer-events: none; z-index: 60; }
         .playback-controls { width: 90%; margin-top: 15px; text-align: center; }
         #seek-bar { width: 100%; height: 25px; margin-bottom: 15px; }
         .btn-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
-        .btn-blue { background: #007AFF; font-size: 0.9rem; padding: 10px 15px; border-radius: 8px; border: none; color: white; }
+        .btn-blue { background: #007AFF; font-size: 0.9rem; padding: 10px 15px; border-radius: 8px; border: none; color: white; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -85,12 +85,14 @@
     const playbackVideo = document.getElementById('playback-video');
     const seekBar = document.getElementById('seek-bar');
     const playPauseOverlay = document.getElementById('play-pause-overlay');
+    const cameraContainer = document.getElementById('camera-container');
 
     let currentStream, mediaRecorder, recordedChunks = [];
     let isDetecting = false, isRecording = false;
     let startTime, detectionStartTime, prevFrameData = null;
     let mappedX, mappedY, mappedW, mappedH;
 
+    // 初始化相機
     async function initCamera(deviceId = null) {
         if (currentStream) currentStream.getTracks().forEach(t => t.stop());
         const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" }, audio: false };
@@ -113,24 +115,32 @@
     }
     cameraSelect.onchange = (e) => initCamera(e.target.value);
 
+    // 畫框事件 (支援觸控與滑鼠)
     let startX, startY, isDrawing = false;
-    document.getElementById('camera-container').addEventListener('touchstart', (e) => {
+    
+    function startDraw(e) {
         if (isDetecting) return;
         isDrawing = true;
-        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        startX = clientX; startY = clientY;
         roiBox.style.left = startX + 'px'; roiBox.style.top = startY + 'px';
         roiBox.style.width = '0px'; roiBox.style.height = '0px';
         roiBox.style.display = 'block';
-    });
-    document.getElementById('camera-container').addEventListener('touchmove', (e) => {
+        readyBtn.style.display = 'none';
+    }
+
+    function moveDraw(e) {
         if (!isDrawing) return;
-        let curX = e.touches[0].clientX, curY = e.touches[0].clientY;
-        roiBox.style.left = Math.min(startX, curX) + 'px';
-        roiBox.style.top = Math.min(startY, curY) + 'px';
-        roiBox.style.width = Math.abs(curX - startX) + 'px';
-        roiBox.style.height = Math.abs(curY - startY) + 'px';
-    });
-    document.getElementById('camera-container').addEventListener('touchend', () => {
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        roiBox.style.left = Math.min(startX, clientX) + 'px';
+        roiBox.style.top = Math.min(startY, clientY) + 'px';
+        roiBox.style.width = Math.abs(clientX - startX) + 'px';
+        roiBox.style.height = Math.abs(clientY - startY) + 'px';
+    }
+
+    function endDraw(e) {
         if (!isDrawing) return;
         isDrawing = false;
         if (parseInt(roiBox.style.width) > 25) {
@@ -142,11 +152,24 @@
             statusMsg.innerText = "已錄影，請點預備";
             statusMsg.style.color = "#00FF00";
         } else { roiBox.style.display = 'none'; }
-    });
+    }
 
+    cameraContainer.addEventListener('touchstart', startDraw);
+    cameraContainer.addEventListener('touchmove', moveDraw);
+    cameraContainer.addEventListener('touchend', endDraw);
+    cameraContainer.addEventListener('mousedown', startDraw);
+    cameraContainer.addEventListener('mousemove', moveDraw);
+    cameraContainer.addEventListener('mouseup', endDraw);
+
+    // 錄影功能
     function startRecording() {
         recordedChunks = [];
-        mediaRecorder = new MediaRecorder(currentStream);
+        try {
+            mediaRecorder = new MediaRecorder(currentStream);
+        } catch (e) {
+            console.error("錄影格式不支援", e);
+            return;
+        }
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
         mediaRecorder.onstop = showPlayback;
         mediaRecorder.start();
@@ -155,10 +178,10 @@
         stopRecordBtn.style.display = 'inline-block';
     }
 
+    // 按下預備，計算座標並進入偵測
     readyBtn.onclick = (e) => {
         e.stopPropagation();
         
-        // 確保座標正確對應相機畫素
         const vW = cameraFeed.videoWidth, vH = cameraFeed.videoHeight;
         const eW = cameraFeed.clientWidth, eH = cameraFeed.clientHeight;
         const scale = Math.min(eW / vW, eH / vH);
@@ -175,48 +198,49 @@
         readyBtn.style.display = 'none';
         cameraSelect.style.display = 'none';
         
-        // 進入穩定緩衝期提示
         statusMsg.innerText = "相機穩定中(手請離開)...";
         statusMsg.style.color = "#FFFF00";
         
         detectionStartTime = performance.now();
         isDetecting = true;
         prevFrameData = null;
-        detectLoop();
+        detectLoop(); // 呼叫全新升級的偵測循環
     };
 
+    // ★ 核心升級：遠距微小動作偵測演算法 ★
     function detectLoop() {
         if (!isDetecting) return;
         ctx.drawImage(cameraFeed, mappedX, mappedY, mappedW, mappedH, 0, 0, mappedW, mappedH);
         const frame = ctx.getImageData(0, 0, mappedW, mappedH).data;
         const elapsed = performance.now() - detectionStartTime;
 
-        // ★ 核心除錯：前 2 秒鐘只記憶背景，絕對不觸發計時！
+        // 前 2 秒鐘只記憶背景，絕對不觸發計時
         if (elapsed < 2000) {
             prevFrameData = frame;
             requestAnimationFrame(detectLoop);
             return;
         } else if (elapsed > 2000 && elapsed < 2100) {
-             statusMsg.innerText = "🟢 偵測中...等待發令";
+             statusMsg.innerText = "🟢 遠距偵測中...等待發令";
              statusMsg.style.color = "#00FF00";
         }
 
-        let totalDiff = 0;
-        let count = 0;
+        let changedPixels = 0;
         
-        // 演算法強化：計算像素亮度的絕對差值
         if (prevFrameData) {
-            for (let i = 0; i < frame.length; i += 16) { // 每 4 個像素取樣
+            // 不跳著取樣，每個畫素都檢查 (i += 4)
+            for (let i = 0; i < frame.length; i += 4) { 
                 let brightness = (frame[i] + frame[i+1] + frame[i+2]) / 3;
                 let pBrightness = (prevFrameData[i] + prevFrameData[i+1] + prevFrameData[i+2]) / 3;
-                totalDiff += Math.abs(brightness - pBrightness);
-                count++;
+                
+                // 只抓取「劇烈變化」的畫素 (亮度差異 > 50 才算數)
+                if (Math.abs(brightness - pBrightness) > 50) {
+                    changedPixels++;
+                }
             }
             
-            let avgDiff = totalDiff / count;
-
-            // 靈敏度門檻 (數值越大越不容易誤觸)。若現場還是太靈敏可改為 50 或 60
-            if (avgDiff > 45) { 
+            // 只要框框內有超過 "20 個" 畫素發生劇烈變化，就觸發
+            // 若在戶外測試太靈敏，可將 20 提高到 40；若抓不到白旗，可降到 10
+            if (changedPixels > 20) { 
                 triggerTimer(); 
                 return; 
             }
@@ -228,8 +252,7 @@
 
     function triggerTimer() {
         isDetecting = false;
-        // 只有在真正觸發後，偵測框才會消失
-        roiBox.style.display = 'none';
+        roiBox.style.display = 'none'; // 觸發後才隱藏框框
         statusMsg.style.display = 'none';
         timerDisplay.style.display = 'block';
         
