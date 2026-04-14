@@ -14,38 +14,47 @@
         #file-name-input { padding: 8px; font-size: 1rem; border-radius: 5px; border: 1px solid #555; background: #222; color: white; width: 50%; }
         #camera-select { padding: 8px; font-size: 1rem; border-radius: 5px; max-width: 45%; background: #333; color: white; border: 1px solid #555; }
         
-        /* 跑道選擇區 (畫面右到左 1-8) */
-        #lane-selection { display: flex; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
-        .lane-toggle { padding: 10px; font-size: 1.1rem; border-radius: 5px; background: #444; border: 1px solid #777; color: white; flex: 1; text-align: center; }
+        /* 跑道選擇區 */
+        #lane-selection { display: flex; justify-content: space-between; gap: 4px; flex-wrap: nowrap; width: 100%; }
+        .lane-toggle { padding: 8px 0; font-size: 0.95rem; border-radius: 5px; background: #444; border: 1px solid #777; color: white; flex: 1; text-align: center; white-space: nowrap; transition: background 0.2s;}
         .lane-toggle.active { background: #007AFF; border-color: #0056b3; font-weight: bold; }
+        #select-all-btn { padding: 8px; background: #555; color: white; border: none; border-radius: 5px; width: 100%; font-size: 1rem; font-weight: bold; margin-top: 2px;}
 
         /* 錄影燈 */
-        #recording-indicator { position: absolute; top: 120px; left: 20px; color: #FF3B30; font-weight: bold; font-size: 1rem; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 5px; display: none; z-index: 30; animation: blink 1s infinite; }
+        #recording-indicator { position: absolute; top: 150px; left: 20px; color: #FF3B30; font-weight: bold; font-size: 1rem; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 5px; display: none; z-index: 30; animation: blink 1s infinite; }
         @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.4;} 100% {opacity: 1;} }
 
         #camera-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: #000; }
         video { width: 100%; height: 100%; object-fit: contain; }
 
         /* 操作按鈕 */
-        #ready-btn { position: absolute; top: 40%; padding: 15px 30px; font-size: 1.5rem; font-weight: bold; border-radius: 10px; border: 2px solid white; background: #FF9500; color: white; z-index: 40; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #ready-btn { position: absolute; top: 50%; padding: 15px 30px; font-size: 1.5rem; font-weight: bold; border-radius: 10px; border: 2px solid white; background: #FF9500; color: white; z-index: 40; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
-        /* 開始按鈕：右下角、超大 */
-        #start-btn { position: absolute; bottom: 30px; right: 30px; padding: 40px 60px; font-size: 3rem; font-weight: bold; border-radius: 20px; border: 4px solid white; background: #34C759; color: white; z-index: 40; box-shadow: 0 8px 20px rgba(0,0,0,0.6); display: none; }
+        /* 錄影控制列 (回上一步 + 開始) */
+        #recording-controls { position: absolute; bottom: 30px; right: 30px; display: none; align-items: center; gap: 15px; z-index: 40; }
+        #cancel-btn { padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; border: 2px solid white; background: #888; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #start-btn { padding: 35px 55px; font-size: 3rem; font-weight: bold; border-radius: 20px; border: 4px solid white; background: #34C759; color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
 
         #stop-record-btn { position: absolute; bottom: 5%; padding: 15px 30px; font-size: 1.3rem; font-weight: bold; border-radius: 10px; border: none; background: #FF3B30; color: white; display: none; z-index: 40; }
 
-        #timer-display { position: absolute; top: 120px; right: 20px; font-size: 3.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 4px #000; display: none; z-index: 10; font-weight: bold; }
+        #timer-display { position: absolute; top: 150px; right: 20px; font-size: 3.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 4px #000; display: none; z-index: 10; font-weight: bold; }
 
         /* 播放器與成績區塊 */
         #playback-container { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #111; flex-direction: column; z-index: 50; overflow-y: auto; padding-bottom: 20px; }
-        #playback-video-wrapper { position: relative; width: 100%; background: #000; display: flex; justify-content: center; align-items: center; }
-        #playback-video { width: 100%; max-height: 45vh; }
-        #play-pause-overlay { position: absolute; font-size: 4rem; color: rgba(255,255,255,0.6); display: none; pointer-events: none; z-index: 60; }
         
-        .playback-controls { width: 95%; margin: 10px auto; text-align: center; }
+        /* 回放影片外框設定為 hidden 防止縮放超出邊界 */
+        #playback-video-wrapper { position: relative; width: 100%; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; height: 45vh; }
+        #playback-video { width: 100%; height: 100%; object-fit: contain; transform-origin: center center; transition: transform 0.05s linear; }
+        
+        #playback-timer-overlay { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 6px #000; z-index: 65; font-weight: bold; pointer-events: none; }
+        #play-pause-overlay { position: absolute; font-size: 4rem; color: rgba(255,255,255,0.6); display: none; pointer-events: none; z-index: 60; }
+        #playback-hint { font-size: 0.85rem; color: #aaa; text-align: center; margin-top: 5px; margin-bottom: 5px; }
+        
+        .playback-controls { width: 95%; margin: 5px auto; text-align: center; }
         #seek-bar { width: 100%; height: 25px; margin-bottom: 10px; }
-        .btn-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; }
+        .btn-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; align-items: center; }
         .btn-blue { background: #007AFF; font-size: 0.9rem; padding: 8px 12px; border-radius: 8px; border: none; color: white; }
+        #current-speed-label { color: #34C759; font-weight: bold; font-size: 1rem; margin-left: 10px; }
 
         /* 判定區 */
         #judge-area { width: 95%; margin: 10px auto; background: #222; padding: 10px; border-radius: 8px; box-sizing: border-box; }
@@ -72,24 +81,30 @@
                 <input type="text" id="file-name-input" placeholder="輸入檔名(例: 101班第1組)">
                 <select id="camera-select"></select>
             </div>
-            <div style="font-size: 0.9rem; color: #ccc;">點選本組參賽跑道 (畫面右至左)：</div>
+            <div style="font-size: 0.9rem; color: #ccc;">點選本組參賽跑道：</div>
             <div id="lane-selection">
-                <div class="lane-toggle active" data-lane="8">道 8</div>
-                <div class="lane-toggle active" data-lane="7">道 7</div>
-                <div class="lane-toggle active" data-lane="6">道 6</div>
-                <div class="lane-toggle active" data-lane="5">道 5</div>
-                <div class="lane-toggle active" data-lane="4">道 4</div>
-                <div class="lane-toggle active" data-lane="3">道 3</div>
-                <div class="lane-toggle active" data-lane="2">道 2</div>
                 <div class="lane-toggle active" data-lane="1">道 1</div>
+                <div class="lane-toggle active" data-lane="2">道 2</div>
+                <div class="lane-toggle active" data-lane="3">道 3</div>
+                <div class="lane-toggle active" data-lane="4">道 4</div>
+                <div class="lane-toggle active" data-lane="5">道 5</div>
+                <div class="lane-toggle active" data-lane="6">道 6</div>
+                <div class="lane-toggle active" data-lane="7">道 7</div>
+                <div class="lane-toggle active" data-lane="8">道 8</div>
             </div>
+            <button id="select-all-btn">全選 1-8 道</button>
         </div>
         
         <div id="recording-indicator">🔴 錄影中</div>
         <video id="camera-feed" autoplay playsinline muted></video>
         
         <button id="ready-btn">預備 (開始錄影)</button>
-        <button id="start-btn">開始</button>
+        
+        <div id="recording-controls">
+            <button id="cancel-btn">回上一步</button>
+            <button id="start-btn">開始</button>
+        </div>
+
         <div id="timer-display">00.000</div>
         
         <button id="stop-record-btn">結束測驗並回放</button>
@@ -97,9 +112,11 @@
 
     <div id="playback-container">
         <div id="playback-video-wrapper">
+            <div id="playback-timer-overlay">00.000</div>
             <video id="playback-video" playsinline></video>
             <div id="play-pause-overlay">▶️</div>
         </div>
+        <div id="playback-hint">點擊螢幕暫停 雙指撥動放大</div>
         
         <div class="playback-controls">
             <input type="range" id="seek-bar" value="0" step="0.01">
@@ -108,17 +125,18 @@
                 <button class="btn-blue" id="slow-25-btn">0.25x 慢速</button>
                 <button class="btn-blue" id="normal-btn">1.0x 正常</button>
                 <button class="btn-blue" style="background:#555;" id="restart-btn">重新測驗</button>
+                <span id="current-speed-label">速度: 1.0x</span>
             </div>
         </div>
 
         <div id="judge-area">
             <div id="judge-title">請在選手壓線瞬間，點擊對應跑道紀錄成績</div>
-            <div id="playback-lane-btns"></div> <table id="results-table">
+            <div id="playback-lane-btns"></div> 
+            <table id="results-table">
                 <thead>
                     <tr><th>名次</th><th>跑道</th><th>成績 (秒)</th></tr>
                 </thead>
-                <tbody id="results-tbody">
-                    </tbody>
+                <tbody id="results-tbody"></tbody>
             </table>
 
             <div class="export-row">
@@ -134,23 +152,27 @@
     const fileNameInput = document.getElementById('file-name-input');
     const topSettings = document.getElementById('top-settings');
     const readyBtn = document.getElementById('ready-btn');
+    const recordingControls = document.getElementById('recording-controls');
     const startBtn = document.getElementById('start-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
     const stopRecordBtn = document.getElementById('stop-record-btn');
     const timerDisplay = document.getElementById('timer-display');
     const recordingIndicator = document.getElementById('recording-indicator');
     
     const playbackContainer = document.getElementById('playback-container');
     const playbackVideo = document.getElementById('playback-video');
+    const playbackTimerOverlay = document.getElementById('playback-timer-overlay');
+    const currentSpeedLabel = document.getElementById('current-speed-label');
     const seekBar = document.getElementById('seek-bar');
     const playPauseOverlay = document.getElementById('play-pause-overlay');
     const playbackLaneBtns = document.getElementById('playback-lane-btns');
     const resultsTbody = document.getElementById('results-tbody');
 
     let currentStream, mediaRecorder, recordedChunks = [];
-    let isRecording = false, timerInterval;
+    let isRecording = false;
     let videoRecordStartTime = 0, raceStartTime = 0;
     let selectedLanes = [];
-    let raceResults = []; // 儲存成績 {lane, time}
+    let raceResults = []; 
 
     // 1. 相機初始化
     async function initCamera(deviceId = null) {
@@ -175,14 +197,31 @@
     }
     cameraSelect.onchange = (e) => initCamera(e.target.value);
 
-    // 2. 跑道選擇邏輯
+    // 2. 跑道選擇邏輯 (含空顯示與全選)
+    function updateLaneUI(btn) {
+        if (btn.classList.contains('active')) {
+            btn.innerText = `道 ${btn.getAttribute('data-lane')}`;
+        } else {
+            btn.innerText = '空';
+        }
+    }
+
     document.querySelectorAll('.lane-toggle').forEach(btn => {
-        btn.onclick = () => { btn.classList.toggle('active'); };
+        btn.onclick = () => { 
+            btn.classList.toggle('active'); 
+            updateLaneUI(btn);
+        };
     });
+
+    document.getElementById('select-all-btn').onclick = () => {
+        document.querySelectorAll('.lane-toggle').forEach(btn => {
+            btn.classList.add('active');
+            updateLaneUI(btn);
+        });
+    };
 
     // 3. 預備：開始錄影
     readyBtn.onclick = () => {
-        // 蒐集選中的跑道 (確保從 8 到 1 的順序不變)
         selectedLanes = [];
         document.querySelectorAll('.lane-toggle.active').forEach(btn => {
             selectedLanes.push(btn.getAttribute('data-lane'));
@@ -194,29 +233,41 @@
         }
 
         recordedChunks = [];
-        try {
-            mediaRecorder = new MediaRecorder(currentStream, { mimeType: 'video/webm' });
-        } catch (e) {
-            mediaRecorder = new MediaRecorder(currentStream); // fallback
-        }
+        try { mediaRecorder = new MediaRecorder(currentStream, { mimeType: 'video/webm' }); } 
+        catch (e) { mediaRecorder = new MediaRecorder(currentStream); }
         
         mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
         mediaRecorder.onstop = showPlayback;
         mediaRecorder.start();
         
         isRecording = true;
-        videoRecordStartTime = performance.now(); // 記錄影片開始錄製的時間戳
+        videoRecordStartTime = performance.now(); 
         
         topSettings.style.display = 'none';
         readyBtn.style.display = 'none';
         recordingIndicator.style.display = 'block';
-        startBtn.style.display = 'block'; // 顯示巨大開始按鈕
+        recordingControls.style.display = 'flex'; // 顯示 回上一步 與 開始 按鈕
     };
 
-    // 4. 開始：鳴槍計時
+    // 4. 回上一步 (取消錄影)
+    cancelBtn.onclick = () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.onstop = null; // 移除跳轉到回放畫面的事件
+            mediaRecorder.stop();
+        }
+        isRecording = false;
+        recordedChunks = [];
+        
+        recordingControls.style.display = 'none';
+        recordingIndicator.style.display = 'none';
+        topSettings.style.display = 'flex';
+        readyBtn.style.display = 'block';
+    };
+
+    // 5. 開始：鳴槍計時
     startBtn.onclick = () => {
-        raceStartTime = performance.now(); // 記錄比賽真正開始的時間戳
-        startBtn.style.display = 'none';
+        raceStartTime = performance.now();
+        recordingControls.style.display = 'none'; // 隱藏底部按鈕列
         stopRecordBtn.style.display = 'block';
         timerDisplay.style.display = 'block';
         
@@ -230,22 +281,23 @@
         requestAnimationFrame(updateTimer);
     }
 
-    // 5. 結束：停止並進入回放
+    // 6. 結束：停止並進入回放
     stopRecordBtn.onclick = () => {
         isRecording = false;
         recordingIndicator.style.display = 'none';
         if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     };
 
-    // 6. 回放與判定 UI 初始化
+    // 7. 回放與判定 UI 初始化
     function showPlayback() {
         document.getElementById('camera-container').style.display = 'none';
         playbackContainer.style.display = 'flex';
         
         const blob = new Blob(recordedChunks, { type: 'video/webm' });
         playbackVideo.src = URL.createObjectURL(blob);
+        playbackVideo.playbackRate = 1.0;
+        currentSpeedLabel.innerText = "速度: 1.0x";
 
-        // 產生判定按鈕 (根據錄影前選擇的跑道)
         playbackLaneBtns.innerHTML = '';
         raceResults = [];
         renderResultsTable();
@@ -257,56 +309,112 @@
             btn.onclick = () => recordTimeForLane(lane, btn);
             playbackLaneBtns.appendChild(btn);
         });
+
+        requestAnimationFrame(updatePlaybackOverlayTimer);
     }
 
-    // 7. 紀錄成績邏輯
+    // 播放畫面上方同步顯示碼表秒數
+    function updatePlaybackOverlayTimer() {
+        if(playbackContainer.style.display === 'flex') {
+            let raceStartOffset = (raceStartTime - videoRecordStartTime) / 1000;
+            let displayTime = playbackVideo.currentTime - raceStartOffset;
+            if (displayTime < 0) displayTime = 0;
+            playbackTimerOverlay.innerText = displayTime.toFixed(3).padStart(6, '0');
+            requestAnimationFrame(updatePlaybackOverlayTimer);
+        }
+    }
+
+    // 8. 紀錄成績邏輯
     function recordTimeForLane(lane, btnElement) {
-        // 計算時間：影片當下時間 - (鳴槍時間與開始錄影的差距)
         let raceStartOffset = (raceStartTime - videoRecordStartTime) / 1000;
         let timeInSeconds = playbackVideo.currentTime - raceStartOffset;
+        if (timeInSeconds < 0) timeInSeconds = 0;
         
-        if (timeInSeconds < 0) timeInSeconds = 0; // 避免負數
-        
-        // 更新或新增成績
         let existing = raceResults.find(r => r.lane === lane);
-        if (existing) {
-            existing.time = timeInSeconds;
-        } else {
-            raceResults.push({ lane: lane, time: timeInSeconds });
-        }
+        if (existing) { existing.time = timeInSeconds; } 
+        else { raceResults.push({ lane: lane, time: timeInSeconds }); }
         
         btnElement.classList.add('recorded');
         renderResultsTable();
     }
 
-    // 8. 渲染成績表 (自動排名)
+    // 9. 渲染成績表
     function renderResultsTable() {
-        // 按時間由小到大排序
         raceResults.sort((a, b) => a.time - b.time);
-        
         resultsTbody.innerHTML = '';
         if (raceResults.length === 0) {
             resultsTbody.innerHTML = `<tr><td colspan="3">尚未標記成績</td></tr>`;
             return;
         }
-
         raceResults.forEach((result, index) => {
             let tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${index + 1}</td>
-                <td>第 ${result.lane} 道</td>
-                <td style="font-family: monospace; font-size:1.1rem;">${result.time.toFixed(3)}</td>
-            `;
+            tr.innerHTML = `<td>${index + 1}</td><td>第 ${result.lane} 道</td><td style="font-family: monospace; font-size:1.1rem;">${result.time.toFixed(3)}</td>`;
             resultsTbody.appendChild(tr);
         });
     }
 
-    // 9. 影片播放控制器
+    // 10. 影片播放與速度控制器
     playbackVideo.onloadedmetadata = () => { seekBar.max = playbackVideo.duration; };
     playbackVideo.ontimeupdate = () => { seekBar.value = playbackVideo.currentTime; };
     seekBar.oninput = () => { playbackVideo.currentTime = seekBar.value; };
 
-    document.getElementById('playback-video-wrapper').onclick = () => {
+    function changeSpeed(rate) {
+        playbackVideo.playbackRate = rate;
+        currentSpeedLabel.innerText = `速度: ${rate}x`;
+        playbackVideo.play();
+    }
+
+    document.getElementById('slow-01-btn').onclick = () => changeSpeed(0.1);
+    document.getElementById('slow-25-btn').onclick = () => changeSpeed(0.25);
+    document.getElementById('normal-btn').onclick = () => changeSpeed(1.0);
+    document.getElementById('restart-btn').onclick = () => { location.reload(); };
+
+    // 11. ★ 雙指縮放與平移邏輯 ★
+    const videoWrapper = document.getElementById('playback-video-wrapper');
+    let currentScale = 1;
+    let initialDistance = 0;
+    let currentTranslate = { x: 0, y: 0 };
+    let startPan = { x: 0, y: 0 };
+    let isPanning = false;
+
+    videoWrapper.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            initialDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        } else if (e.touches.length === 1 && currentScale > 1) {
+            isPanning = true;
+            startPan.x = e.touches[0].clientX - currentTranslate.x;
+            startPan.y = e.touches[0].clientY - currentTranslate.y;
+        }
+    });
+
+    videoWrapper.addEventListener('touchmove', (e) => {
+        if (currentScale > 1 || e.touches.length > 1) { e.preventDefault(); } // 放大時防止畫面滾動
+        
+        if (e.touches.length === 2) {
+            let currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            let scaleChange = currentDistance / initialDistance;
+            currentScale = Math.max(1, Math.min(currentScale * scaleChange, 5)); // 限制放大倍率 1x ~ 5x
+            initialDistance = currentDistance;
+            updateTransform();
+        } else if (e.touches.length === 1 && isPanning) {
+            currentTranslate.x = e.touches[0].clientX - startPan.x;
+            currentTranslate.y = e.touches[0].clientY - startPan.y;
+            updateTransform();
+        }
+    }, { passive: false });
+
+    videoWrapper.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) initialDistance = 0;
+        if (e.touches.length === 0) isPanning = false;
+    });
+
+    function updateTransform() {
+        if (currentScale === 1) currentTranslate = { x: 0, y: 0 }; // 縮回原狀時自動歸位
+        playbackVideo.style.transform = `translate(${currentTranslate.x}px, ${currentTranslate.y}px) scale(${currentScale})`;
+    }
+
+    // 點擊暫停功能 (為了不與拖曳衝突，利用 onclick 處理)
+    videoWrapper.onclick = (e) => {
         if (playbackVideo.paused) {
             playbackVideo.play();
             playPauseOverlay.style.display = 'none';
@@ -318,39 +426,27 @@
         }
     };
 
-    document.getElementById('slow-01-btn').onclick = () => { playbackVideo.playbackRate = 0.1; playbackVideo.play(); };
-    document.getElementById('slow-25-btn').onclick = () => { playbackVideo.playbackRate = 0.25; playbackVideo.play(); };
-    document.getElementById('normal-btn').onclick = () => { playbackVideo.playbackRate = 1.0; playbackVideo.play(); };
-    document.getElementById('restart-btn').onclick = () => { location.reload(); };
-
-    // 10. 匯出邏輯
+    // 12. 匯出邏輯
     function getFileName() {
         let name = fileNameInput.value.trim();
-        if (!name) name = `測驗成績_${new Date().getTime()}`;
-        return name;
+        return name ? name : `測驗成績_${new Date().getTime()}`;
     }
 
     document.getElementById('export-excel-btn').onclick = () => {
         if (raceResults.length === 0) { alert("沒有成績可匯出！"); return; }
-        
-        let csvContent = "\uFEFF"; // BOM 讓 Excel 支援中文
+        let csvContent = "\uFEFF"; 
         csvContent += "名次,跑道,成績(秒)\n";
-        raceResults.forEach((r, i) => {
-            csvContent += `${i + 1},${r.lane},${r.time.toFixed(3)}\n`;
-        });
-        
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        raceResults.forEach((r, i) => { csvContent += `${i + 1},${r.lane},${r.time.toFixed(3)}\n`; });
         const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
+        link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
         link.download = `${getFileName()}.csv`;
         link.click();
     };
 
     document.getElementById('export-video-btn').onclick = () => {
         if (recordedChunks.length === 0) { alert("沒有影片可下載！"); return; }
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
         const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
+        link.href = URL.createObjectURL(new Blob(recordedChunks, { type: 'video/webm' }));
         link.download = `${getFileName()}.webm`;
         link.click();
     };
