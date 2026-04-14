@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>短距離計時 (專業版)</title>
+    <title>短距離計時 (專業版 V10)</title>
     <style>
-        /* 基礎設定，防止 iOS 預設的彈性滾動干擾 */
+        /* 基礎設定，防止畫面整體被滑動 */
         body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; touch-action: manipulation; }
         
         /* 頂端設定區 */
@@ -39,57 +39,67 @@
 
         #timer-display { position: absolute; top: 150px; right: 20px; font-size: 3.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 4px #000; display: none; z-index: 10; font-weight: bold; }
 
-        /* ★ 排版升級：回放區整體改為允許上下捲動 ★ */
+        /* ★ 佈局大升級：嚴格鎖死外框，不允許整體滑動 ★ */
         #playback-container { 
             display: none; position: absolute; top: 0; left: 0; 
-            width: 100vw; height: 100dvh; /* 支援現代手機動態視窗高度 */
+            width: 100vw; height: 100dvh; /* 嚴格滿版 */
             background: #111; flex-direction: column; z-index: 50; 
-            overflow-y: auto; overflow-x: hidden; /* 釋放滾動封印 */
+            overflow: hidden; /* 絕對不允許外層滾動 */
         }
         
-        /* ★ 影片區吸頂 (Sticky)：往下滑時影片永遠黏在最上面 ★ */
+        /* 影片區：絕對鎖死高度 (40vh)，禁止縮放 */
         #playback-video-wrapper { 
-            position: sticky; top: 0; z-index: 60; 
-            width: 100%; height: 35vh; background: #000; 
-            display: flex; justify-content: center; align-items: center; 
-            overflow: hidden; touch-action: none; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5); /* 加點陰影區分 */
+            width: 100%; height: 40vh; flex: 0 0 40vh; /* flex-grow: 0, flex-shrink: 0 */
+            background: #000; display: flex; justify-content: center; align-items: center; 
+            overflow: hidden; touch-action: none; position: relative;
         }
         #playback-video { width: 100%; height: 100%; object-fit: contain; transform-origin: center center; transition: transform 0.05s linear; }
         
         #playback-timer-overlay { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 6px #000; z-index: 65; font-weight: bold; pointer-events: none; }
         #play-pause-overlay { position: absolute; font-size: 4rem; color: rgba(255,255,255,0.6); display: none; pointer-events: none; z-index: 60; }
+        
+        /* 控制面板：鎖死高度，不允許縮放 */
+        .playback-controls { 
+            width: 95%; margin: 5px auto; text-align: center; 
+            flex: 0 0 auto; 
+        }
         #playback-hint { font-size: 0.85rem; color: #aaa; text-align: center; margin-top: 5px; }
         
-        .playback-controls { width: 95%; margin: 5px auto; text-align: center; }
-        
-        /* 微調滑桿區 */
-        .slider-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 5px; }
+        .slider-row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; gap: 5px; }
         #seek-bar { flex: 1; height: 25px; margin: 0 5px; }
-        .btn-step { background: #555; color: white; border: 1px solid #777; border-radius: 6px; padding: 6px 10px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; }
+        .btn-step { background: #555; color: white; border: 1px solid #777; border-radius: 6px; padding: 8px 12px; font-size: 0.95rem; font-weight: bold; white-space: nowrap; }
         
         .btn-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; align-items: center; }
         .btn-blue { background: #007AFF; font-size: 0.9rem; padding: 8px 10px; border-radius: 8px; border: none; color: white; }
         .btn-rev { background: #E64A19; } 
         #current-speed-label { color: #34C759; font-weight: bold; font-size: 0.95rem; margin-left: 5px; }
 
-        /* 判定區 (自然長高，不再被壓扁) */
+        /* 判定與成績區：自動吸收剩餘的垂直空間 */
         #judge-area { 
-            width: 95%; margin: 5px auto 40px auto; /* 底部多留白，確保滑到底能看到按鈕 */
-            background: #222; padding: 10px; border-radius: 8px; box-sizing: border-box; 
+            width: 95%; margin: 5px auto 10px auto; background: #222; padding: 10px; 
+            border-radius: 8px; box-sizing: border-box; 
+            display: flex; flex-direction: column; 
+            flex: 1 1 0; /* 吸收所有剩餘空間 */
+            min-height: 0; /* 關鍵：防止內容過長撐爆外框 */
         }
-        #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 5px; text-align: center; }
-        #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 5px; text-align: center; flex: 0 0 auto; }
+        #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; flex: 0 0 auto; }
         .judge-lane-btn { padding: 10px; font-size: 1.1rem; border-radius: 8px; background: #FF9500; color: white; border: none; font-weight: bold; flex: 1; text-align: center; min-width: 60px; }
         .judge-lane-btn.recorded { background: #34C759; }
 
-        /* 成績表 (讓表格自然展開) */
-        .table-container { margin-bottom: 15px; border: 1px solid #555; border-radius: 5px; background: #111; }
+        /* ★ 成績表容器：這是唯一允許內部滾動的地方 ★ */
+        .table-container { 
+            flex: 1 1 0; /* 填滿判定區剩下的空間 */
+            overflow-y: auto; /* 內容太多時，只在這裡出現捲軸 */
+            margin-bottom: 10px; border: 1px solid #555; border-radius: 5px; background: #111; 
+            min-height: 0; 
+        }
         table { width: 100%; border-collapse: collapse; text-align: center; color: white; }
         th, td { border: 1px solid #444; padding: 8px; }
         th { background: #333; position: sticky; top: 0; z-index: 2; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.5); }
         
-        .export-row { display: flex; justify-content: space-around; gap: 10px; }
+        /* 匯出按鈕列：固定在底部 */
+        .export-row { display: flex; justify-content: space-around; gap: 10px; flex: 0 0 auto; }
         .btn-export { background: #AF52DE; font-size: 1.1rem; padding: 10px; border-radius: 8px; border: none; color: white; flex: 1; font-weight: bold; transition: background 0.3s;}
         .btn-export.video { background: #FF2D55; }
         .btn-export:disabled { background: #555; color: #ccc; cursor: not-allowed; }
@@ -133,14 +143,15 @@
     </div>
 
     <div id="playback-container">
+        
         <div id="playback-video-wrapper">
             <div id="playback-timer-overlay">00.000</div>
             <video id="playback-video" playsinline></video>
             <div id="play-pause-overlay">▶️</div>
         </div>
-        <div id="playback-hint">點擊螢幕暫停 雙指撥動放大</div>
         
         <div class="playback-controls">
+            <div id="playback-hint">點擊螢幕暫停 雙指撥動放大</div>
             <div class="slider-row">
                 <button class="btn-step" id="step-back-btn">⏪ 退一格</button>
                 <input type="range" id="seek-bar" value="0" step="0.01">
@@ -174,6 +185,7 @@
                 <button class="btn-export video" id="export-video-btn">🎬 製作影片檔</button>
             </div>
         </div>
+
     </div>
 
 <script>
@@ -349,7 +361,6 @@
         btnElement.classList.add('recorded');
         renderResultsTable();
 
-        // 所有跑道都完成判定時自動啟動影片製作
         if (raceResults.length === selectedLanes.length && !isRenderTriggered) {
             startVideoRender();
         }
@@ -368,11 +379,14 @@
             resultsTbody.appendChild(tr);
         });
         
-        // 成績更新時自動往下捲動讓最新的成績可見
-        setTimeout(() => { playbackContainer.scrollTop = playbackContainer.scrollHeight; }, 100);
+        // 確保新增成績時，內部的成績表會自動滾到最下面
+        const tableContainer = document.querySelector('.table-container');
+        if (tableContainer) {
+            setTimeout(() => { tableContainer.scrollTop = tableContainer.scrollHeight; }, 50);
+        }
     }
 
-    // ★ 影片播放與速度控制器 (重製版倒帶邏輯與微調按鈕) ★
+    // ★ 倒帶與微調邏輯 ★
     let isReversing = false;
 
     playbackVideo.onloadedmetadata = () => { seekBar.max = playbackVideo.duration; };
@@ -383,14 +397,11 @@
         playbackVideo.currentTime = seekBar.value; 
     };
 
-    // 透過監聽 seeked 事件，強制手機瀏覽器乖乖畫出倒退的影格
     playbackVideo.addEventListener('seeked', () => {
         if (!isReversing) return;
         seekBar.value = playbackVideo.currentTime;
-        // 等待約 80 毫秒，讓手機硬體有足夠時間把這格畫面渲染到螢幕上，再進行下一步退格
         setTimeout(() => {
             if (isReversing && playbackVideo.currentTime > 0) {
-                // 每次退回 0.03 秒，產生約 -0.3x 的視覺倒帶感
                 playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 0.03);
             } else if (playbackVideo.currentTime <= 0) {
                 isReversing = false;
@@ -405,7 +416,6 @@
             playbackVideo.pause();
             isReversing = true;
             currentSpeedLabel.innerText = `速度: 倒帶看`;
-            // 觸發倒帶循環的第一步
             playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 0.03);
         } else {
             playbackVideo.playbackRate = rate;
@@ -414,18 +424,18 @@
         }
     }
 
-    // 微調按鈕邏輯：按一次只精準移動 0.05 秒（一格）
+    // ★ 微調進退格修改為 0.01 秒 ★
     document.getElementById('step-back-btn').onclick = () => {
         isReversing = false;
         playbackVideo.pause();
-        playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 0.05);
+        playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 0.01);
         currentSpeedLabel.innerText = "速度: 暫停";
     };
     
     document.getElementById('step-forward-btn').onclick = () => {
         isReversing = false;
         playbackVideo.pause();
-        playbackVideo.currentTime = Math.min(playbackVideo.duration, playbackVideo.currentTime + 0.05);
+        playbackVideo.currentTime = Math.min(playbackVideo.duration, playbackVideo.currentTime + 0.01);
         currentSpeedLabel.innerText = "速度: 暫停";
     };
 
@@ -434,7 +444,6 @@
     document.getElementById('slow-25-btn').onclick = () => changeSpeed(0.25);
     document.getElementById('normal-btn').onclick = () => changeSpeed(1.0);
     
-    // 重新測驗防呆
     document.getElementById('restart-btn').onclick = () => { 
         if(confirm("確定要重新測驗嗎？尚未下載的成績與影片將會遺失！")) { location.reload(); }
     };
@@ -484,7 +493,7 @@
     }
 
     videoWrapper.onclick = (e) => {
-        isReversing = false; // 點擊畫面時解除倒帶
+        isReversing = false; 
         if (playbackVideo.paused) {
             playbackVideo.play();
             playPauseOverlay.style.display = 'none';
