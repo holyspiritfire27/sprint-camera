@@ -30,7 +30,7 @@
         /* 操作按鈕 */
         #ready-btn { position: absolute; top: 50%; padding: 15px 30px; font-size: 1.5rem; font-weight: bold; border-radius: 10px; border: 2px solid white; background: #FF9500; color: white; z-index: 40; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
-        /* 錄影控制列 (回上一步 + 開始) */
+        /* 錄影控制列 */
         #recording-controls { position: absolute; bottom: 30px; right: 30px; display: none; align-items: center; gap: 15px; z-index: 40; }
         #cancel-btn { padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; border: 2px solid white; background: #888; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         #start-btn { padding: 35px 55px; font-size: 3rem; font-weight: bold; border-radius: 20px; border: 4px solid white; background: #34C759; color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
@@ -39,10 +39,9 @@
 
         #timer-display { position: absolute; top: 150px; right: 20px; font-size: 3.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 4px #000; display: none; z-index: 10; font-weight: bold; }
 
-        /* 播放器與成績區塊整體架構 (鎖定100vh，不允許整個網頁滾動) */
+        /* 播放器與成績區塊 */
         #playback-container { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #111; flex-direction: column; z-index: 50; overflow: hidden; }
         
-        /* 回放影片外框 (鎖死高度，禁止縮小) */
         #playback-video-wrapper { position: relative; width: 100%; height: 40vh; flex-shrink: 0; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; }
         #playback-video { width: 100%; height: 100%; object-fit: contain; transform-origin: center center; transition: transform 0.05s linear; }
         
@@ -53,26 +52,27 @@
         .playback-controls { width: 95%; margin: 5px auto; text-align: center; flex-shrink: 0; }
         #seek-bar { width: 100%; height: 25px; margin-bottom: 5px; }
         .btn-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; align-items: center; }
-        .btn-blue { background: #007AFF; font-size: 0.9rem; padding: 8px 12px; border-radius: 8px; border: none; color: white; }
-        #current-speed-label { color: #34C759; font-weight: bold; font-size: 1rem; margin-left: 10px; }
+        .btn-blue { background: #007AFF; font-size: 0.9rem; padding: 8px 10px; border-radius: 8px; border: none; color: white; }
+        .btn-rev { background: #E64A19; } /* 倒帶按鈕特殊顏色 */
+        #current-speed-label { color: #34C759; font-weight: bold; font-size: 0.95rem; margin-left: 5px; }
 
-        /* 判定區 (自動填滿剩下的垂直空間) */
+        /* 判定區 */
         #judge-area { width: 95%; margin: 5px auto 10px auto; background: #222; padding: 10px; border-radius: 8px; box-sizing: border-box; display: flex; flex-direction: column; flex: 1; min-height: 0; }
         #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 5px; text-align: center; flex-shrink: 0; }
         #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; flex-shrink: 0; }
         .judge-lane-btn { padding: 10px; font-size: 1.1rem; border-radius: 8px; background: #FF9500; color: white; border: none; font-weight: bold; flex: 1; text-align: center; min-width: 60px; }
         .judge-lane-btn.recorded { background: #34C759; }
 
-        /* 成績表滑動容器 */
+        /* 成績表 */
         .table-container { flex: 1; overflow-y: auto; margin-bottom: 10px; border: 1px solid #555; border-radius: 5px; background: #111; }
         table { width: 100%; border-collapse: collapse; text-align: center; color: white; }
         th, td { border: 1px solid #444; padding: 8px; }
-        /* 固定表頭 */
         th { background: #333; position: sticky; top: 0; z-index: 2; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.5); }
         
         .export-row { display: flex; justify-content: space-around; gap: 10px; flex-shrink: 0; }
-        .btn-export { background: #AF52DE; font-size: 1.1rem; padding: 10px; border-radius: 8px; border: none; color: white; flex: 1; font-weight: bold; }
+        .btn-export { background: #AF52DE; font-size: 1.1rem; padding: 10px; border-radius: 8px; border: none; color: white; flex: 1; font-weight: bold; transition: background 0.3s;}
         .btn-export.video { background: #FF2D55; }
+        .btn-export:disabled { background: #555; color: #888; }
     </style>
 </head>
 <body>
@@ -123,8 +123,9 @@
         <div class="playback-controls">
             <input type="range" id="seek-bar" value="0" step="0.01">
             <div class="btn-row">
+                <button class="btn-blue btn-rev" id="rev-slow-01-btn">-0.1x 倒帶</button>
                 <button class="btn-blue" id="slow-01-btn">0.1x 極慢</button>
-                <button class="btn-blue" id="slow-25-btn">0.25x 慢速</button>
+                <button class="btn-blue" id="slow-25-btn">0.25x 慢</button>
                 <button class="btn-blue" id="normal-btn">1.0x 正常</button>
                 <button class="btn-blue" style="background:#555;" id="restart-btn">重新測驗</button>
                 <span id="current-speed-label">速度: 1.0x</span>
@@ -145,8 +146,8 @@
             </div>
 
             <div class="export-row">
-                <button class="btn-export" id="export-excel-btn">📊 下載成績 (Excel/CSV)</button>
-                <button class="btn-export video" id="export-video-btn">🎬 下載影片檔</button>
+                <button class="btn-export" id="export-excel-btn">📊 下載成績單</button>
+                <button class="btn-export video" id="export-video-btn">🎬 烘焙並下載影片</button>
             </div>
         </div>
     </div>
@@ -254,7 +255,6 @@
         recordingControls.style.display = 'flex'; 
     };
 
-    // 回上一步 (取消錄影)
     cancelBtn.onclick = () => {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.onstop = null; 
@@ -262,14 +262,12 @@
         }
         isRecording = false;
         recordedChunks = [];
-        
         recordingControls.style.display = 'none';
         recordingIndicator.style.display = 'none';
         topSettings.style.display = 'flex';
         readyBtn.style.display = 'block';
     };
 
-    // 開始：鳴槍計時
     startBtn.onclick = () => {
         raceStartTime = performance.now();
         recordingControls.style.display = 'none';
@@ -285,14 +283,12 @@
         requestAnimationFrame(updateTimer);
     }
 
-    // 結束：停止並進入回放
     stopRecordBtn.onclick = () => {
         isRecording = false;
         recordingIndicator.style.display = 'none';
         if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     };
 
-    // 回放與判定 UI 初始化
     function showPlayback() {
         document.getElementById('camera-container').style.display = 'none';
         playbackContainer.style.display = 'flex';
@@ -317,7 +313,6 @@
         requestAnimationFrame(updatePlaybackOverlayTimer);
     }
 
-    // 播放畫面上方同步顯示碼表秒數
     function updatePlaybackOverlayTimer() {
         if(playbackContainer.style.display === 'flex') {
             let raceStartOffset = (raceStartTime - videoRecordStartTime) / 1000;
@@ -328,7 +323,6 @@
         }
     }
 
-    // 紀錄成績邏輯
     function recordTimeForLane(lane, btnElement) {
         let raceStartOffset = (raceStartTime - videoRecordStartTime) / 1000;
         let timeInSeconds = playbackVideo.currentTime - raceStartOffset;
@@ -342,7 +336,6 @@
         renderResultsTable();
     }
 
-    // 渲染成績表與自動捲動
     function renderResultsTable() {
         raceResults.sort((a, b) => a.time - b.time);
         resultsTbody.innerHTML = '';
@@ -356,26 +349,57 @@
             resultsTbody.appendChild(tr);
         });
 
-        // 當成績增加時，自動將表格捲動到最底端，方便查看最新登記的落後名次
         const tableContainer = document.querySelector('.table-container');
         if (tableContainer) {
-            setTimeout(() => {
-                tableContainer.scrollTop = tableContainer.scrollHeight;
-            }, 50); // 稍微延遲以確保 DOM 已經更新完畢
+            setTimeout(() => { tableContainer.scrollTop = tableContainer.scrollHeight; }, 50); 
         }
     }
 
-    // 影片播放與速度控制器
-    playbackVideo.onloadedmetadata = () => { seekBar.max = playbackVideo.duration; };
-    playbackVideo.ontimeupdate = () => { seekBar.value = playbackVideo.currentTime; };
-    seekBar.oninput = () => { playbackVideo.currentTime = seekBar.value; };
+    // ★ 影片播放與速度控制器 (包含 -0.1x 倒帶黑科技) ★
+    let reverseAnimationId = null;
+    let lastReverseTime = null;
 
-    function changeSpeed(rate) {
-        playbackVideo.playbackRate = rate;
-        currentSpeedLabel.innerText = `速度: ${rate}x`;
-        playbackVideo.play();
+    playbackVideo.onloadedmetadata = () => { seekBar.max = playbackVideo.duration; };
+    playbackVideo.ontimeupdate = () => { if(!reverseAnimationId) seekBar.value = playbackVideo.currentTime; };
+    
+    seekBar.oninput = () => { 
+        cancelAnimationFrame(reverseAnimationId); // 拖拉進度條時停止倒帶
+        playbackVideo.currentTime = seekBar.value; 
+    };
+
+    function reversePlayLoop(timestamp) {
+        if (!lastReverseTime) lastReverseTime = timestamp;
+        const delta = timestamp - lastReverseTime;
+        lastReverseTime = timestamp;
+        
+        // 往前扣除時間 (0.1x 速度)
+        playbackVideo.currentTime -= (delta / 1000) * 0.1;
+        seekBar.value = playbackVideo.currentTime; // 同步滑桿
+
+        if (playbackVideo.currentTime <= 0) {
+            playbackVideo.pause();
+            cancelAnimationFrame(reverseAnimationId);
+            return;
+        }
+        reverseAnimationId = requestAnimationFrame(reversePlayLoop);
     }
 
+    function changeSpeed(rate) {
+        cancelAnimationFrame(reverseAnimationId);
+        lastReverseTime = null;
+
+        if (rate < 0) {
+            playbackVideo.pause();
+            currentSpeedLabel.innerText = `速度: ${rate}x`;
+            reverseAnimationId = requestAnimationFrame(reversePlayLoop);
+        } else {
+            playbackVideo.playbackRate = rate;
+            currentSpeedLabel.innerText = `速度: ${rate}x`;
+            playbackVideo.play();
+        }
+    }
+
+    document.getElementById('rev-slow-01-btn').onclick = () => changeSpeed(-0.1);
     document.getElementById('slow-01-btn').onclick = () => changeSpeed(0.1);
     document.getElementById('slow-25-btn').onclick = () => changeSpeed(0.25);
     document.getElementById('normal-btn').onclick = () => changeSpeed(1.0);
@@ -425,8 +449,8 @@
         playbackVideo.style.transform = `translate(${currentTranslate.x}px, ${currentTranslate.y}px) scale(${currentScale})`;
     }
 
-    // 點擊暫停功能 
     videoWrapper.onclick = (e) => {
+        cancelAnimationFrame(reverseAnimationId); // 點擊畫面時解除倒帶
         if (playbackVideo.paused) {
             playbackVideo.play();
             playPauseOverlay.style.display = 'none';
@@ -455,12 +479,112 @@
         link.click();
     };
 
-    document.getElementById('export-video-btn').onclick = () => {
+    // ★ 核心升級：將碼表與成績單「燒錄」到新影片中 ★
+    document.getElementById('export-video-btn').onclick = async () => {
         if (recordedChunks.length === 0) { alert("沒有影片可下載！"); return; }
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(new Blob(recordedChunks, { type: 'video/webm' }));
-        link.download = `${getFileName()}.webm`;
-        link.click();
+        
+        const btn = document.getElementById('export-video-btn');
+        const originalText = btn.innerText;
+        
+        // 變更按鈕狀態，因為這需要影片實際播放一遍的時間
+        btn.innerText = "⏳ 正在烘焙影片...請等候影片播放完畢";
+        btn.disabled = true;
+        btn.style.background = "#555";
+
+        const renderCanvas = document.createElement('canvas');
+        const renderCtx = renderCanvas.getContext('2d');
+        const sourceVideo = document.createElement('video');
+        
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        sourceVideo.src = URL.createObjectURL(blob);
+        sourceVideo.muted = true;
+        sourceVideo.playsInline = true;
+
+        sourceVideo.onloadedmetadata = () => {
+            renderCanvas.width = sourceVideo.videoWidth;
+            renderCanvas.height = sourceVideo.videoHeight;
+            
+            const stream = renderCanvas.captureStream(30); // 以 30fps 擷取畫面
+            
+            let exporter;
+            try { exporter = new MediaRecorder(stream, { mimeType: 'video/webm' }); } 
+            catch (e) { exporter = new MediaRecorder(stream); } // fallback
+            
+            const exportChunks = [];
+            exporter.ondataavailable = e => { if (e.data.size > 0) exportChunks.push(e.data); };
+            exporter.onstop = () => {
+                const finalBlob = new Blob(exportChunks, { type: 'video/webm' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(finalBlob);
+                link.download = `${getFileName()}_成績影片.webm`;
+                link.click();
+                
+                // 恢復按鈕狀態
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.style.background = "#FF2D55";
+            };
+
+            // 確保影片播放完畢後停止錄製
+            sourceVideo.onended = () => { exporter.stop(); };
+
+            exporter.start();
+            sourceVideo.play();
+            
+            const raceStartOffset = (raceStartTime - videoRecordStartTime) / 1000;
+            
+            // 計算自適應字體大小 (依據相機解析度)
+            const timerFontSize = Math.floor(renderCanvas.height * 0.08);
+            const resultFontSize = Math.floor(renderCanvas.height * 0.05);
+
+            function drawFrame() {
+                if (sourceVideo.paused && !sourceVideo.ended) {
+                    requestAnimationFrame(drawFrame);
+                    return;
+                }
+                if (sourceVideo.ended) return;
+                
+                // 1. 畫上背景原始影片
+                renderCtx.drawImage(sourceVideo, 0, 0, renderCanvas.width, renderCanvas.height);
+                
+                let displayTime = sourceVideo.currentTime - raceStartOffset;
+                if (displayTime < 0) displayTime = 0;
+
+                const centerX = renderCanvas.width / 2;
+                let timerY = timerFontSize * 1.5;
+
+                // 2. 畫上碼表秒數
+                const timeText = displayTime.toFixed(3).padStart(6, '0');
+                renderCtx.textAlign = 'center';
+                renderCtx.font = `bold ${timerFontSize}px monospace`;
+                renderCtx.lineWidth = timerFontSize * 0.1;
+                renderCtx.strokeStyle = 'black'; // 加黑色外框讓白底也能看清
+                renderCtx.strokeText(timeText, centerX, timerY);
+                renderCtx.fillStyle = '#FFD700';
+                renderCtx.fillText(timeText, centerX, timerY);
+
+                // 3. 畫上陸續衝線的學生成績
+                let shownResults = raceResults.filter(r => r.time <= displayTime);
+                shownResults.sort((a, b) => a.time - b.time);
+                
+                renderCtx.font = `bold ${resultFontSize}px sans-serif`;
+                renderCtx.lineWidth = resultFontSize * 0.1;
+                
+                shownResults.forEach((res, idx) => {
+                    let y = timerY + (idx + 1) * (resultFontSize * 1.5);
+                    let text = `第${idx+1}名  道${res.lane}  成績: ${res.time.toFixed(3)}`;
+                    
+                    renderCtx.strokeStyle = 'black';
+                    renderCtx.strokeText(text, centerX, y);
+                    renderCtx.fillStyle = '#FFFFFF';
+                    renderCtx.fillText(text, centerX, y);
+                });
+
+                requestAnimationFrame(drawFrame);
+            }
+            
+            sourceVideo.onplay = () => drawFrame();
+        };
     };
 
     window.onload = () => initCamera();
