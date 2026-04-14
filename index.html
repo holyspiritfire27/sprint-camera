@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>短距計時 (專業版)</title>
+    <title>短距離計時 (專業版)</title>
     <style>
+        /* 基礎設定，防止 iOS 預設的彈性滾動干擾 */
         body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; touch-action: manipulation; }
         
         /* 頂端設定區 */
@@ -30,7 +31,6 @@
         /* 操作按鈕 */
         #ready-btn { position: absolute; top: 50%; padding: 15px 30px; font-size: 1.5rem; font-weight: bold; border-radius: 10px; border: 2px solid white; background: #FF9500; color: white; z-index: 40; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
-        /* 錄影控制列 */
         #recording-controls { position: absolute; bottom: 30px; right: 30px; display: none; align-items: center; gap: 15px; z-index: 40; }
         #cancel-btn { padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; border: 2px solid white; background: #888; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         #start-btn { padding: 35px 55px; font-size: 3rem; font-weight: bold; border-radius: 20px; border: 4px solid white; background: #34C759; color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
@@ -39,37 +39,57 @@
 
         #timer-display { position: absolute; top: 150px; right: 20px; font-size: 3.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 4px #000; display: none; z-index: 10; font-weight: bold; }
 
-        /* 播放器與成績區塊 */
-        #playback-container { display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #111; flex-direction: column; z-index: 50; overflow: hidden; }
+        /* ★ 排版升級：回放區整體改為允許上下捲動 ★ */
+        #playback-container { 
+            display: none; position: absolute; top: 0; left: 0; 
+            width: 100vw; height: 100dvh; /* 支援現代手機動態視窗高度 */
+            background: #111; flex-direction: column; z-index: 50; 
+            overflow-y: auto; overflow-x: hidden; /* 釋放滾動封印 */
+        }
         
-        #playback-video-wrapper { position: relative; width: 100%; height: 40vh; flex-shrink: 0; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; }
+        /* ★ 影片區吸頂 (Sticky)：往下滑時影片永遠黏在最上面 ★ */
+        #playback-video-wrapper { 
+            position: sticky; top: 0; z-index: 60; 
+            width: 100%; height: 35vh; background: #000; 
+            display: flex; justify-content: center; align-items: center; 
+            overflow: hidden; touch-action: none; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5); /* 加點陰影區分 */
+        }
         #playback-video { width: 100%; height: 100%; object-fit: contain; transform-origin: center center; transition: transform 0.05s linear; }
         
         #playback-timer-overlay { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 6px #000; z-index: 65; font-weight: bold; pointer-events: none; }
         #play-pause-overlay { position: absolute; font-size: 4rem; color: rgba(255,255,255,0.6); display: none; pointer-events: none; z-index: 60; }
-        #playback-hint { font-size: 0.85rem; color: #aaa; text-align: center; margin-top: 5px; flex-shrink: 0; }
+        #playback-hint { font-size: 0.85rem; color: #aaa; text-align: center; margin-top: 5px; }
         
-        .playback-controls { width: 95%; margin: 5px auto; text-align: center; flex-shrink: 0; }
-        #seek-bar { width: 100%; height: 25px; margin-bottom: 5px; }
+        .playback-controls { width: 95%; margin: 5px auto; text-align: center; }
+        
+        /* 微調滑桿區 */
+        .slider-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 5px; }
+        #seek-bar { flex: 1; height: 25px; margin: 0 5px; }
+        .btn-step { background: #555; color: white; border: 1px solid #777; border-radius: 6px; padding: 6px 10px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; }
+        
         .btn-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; align-items: center; }
         .btn-blue { background: #007AFF; font-size: 0.9rem; padding: 8px 10px; border-radius: 8px; border: none; color: white; }
-        .btn-rev { background: #E64A19; } /* 倒帶按鈕特殊顏色 */
+        .btn-rev { background: #E64A19; } 
         #current-speed-label { color: #34C759; font-weight: bold; font-size: 0.95rem; margin-left: 5px; }
 
-        /* 判定區 */
-        #judge-area { width: 95%; margin: 5px auto 10px auto; background: #222; padding: 10px; border-radius: 8px; box-sizing: border-box; display: flex; flex-direction: column; flex: 1; min-height: 0; }
-        #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 5px; text-align: center; flex-shrink: 0; }
-        #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; flex-shrink: 0; }
+        /* 判定區 (自然長高，不再被壓扁) */
+        #judge-area { 
+            width: 95%; margin: 5px auto 40px auto; /* 底部多留白，確保滑到底能看到按鈕 */
+            background: #222; padding: 10px; border-radius: 8px; box-sizing: border-box; 
+        }
+        #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 5px; text-align: center; }
+        #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
         .judge-lane-btn { padding: 10px; font-size: 1.1rem; border-radius: 8px; background: #FF9500; color: white; border: none; font-weight: bold; flex: 1; text-align: center; min-width: 60px; }
         .judge-lane-btn.recorded { background: #34C759; }
 
-        /* 成績表 */
-        .table-container { flex: 1; overflow-y: auto; margin-bottom: 10px; border: 1px solid #555; border-radius: 5px; background: #111; }
+        /* 成績表 (讓表格自然展開) */
+        .table-container { margin-bottom: 15px; border: 1px solid #555; border-radius: 5px; background: #111; }
         table { width: 100%; border-collapse: collapse; text-align: center; color: white; }
         th, td { border: 1px solid #444; padding: 8px; }
         th { background: #333; position: sticky; top: 0; z-index: 2; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.5); }
         
-        .export-row { display: flex; justify-content: space-around; gap: 10px; flex-shrink: 0; }
+        .export-row { display: flex; justify-content: space-around; gap: 10px; }
         .btn-export { background: #AF52DE; font-size: 1.1rem; padding: 10px; border-radius: 8px; border: none; color: white; flex: 1; font-weight: bold; transition: background 0.3s;}
         .btn-export.video { background: #FF2D55; }
         .btn-export:disabled { background: #555; color: #ccc; cursor: not-allowed; }
@@ -121,9 +141,13 @@
         <div id="playback-hint">點擊螢幕暫停 雙指撥動放大</div>
         
         <div class="playback-controls">
-            <input type="range" id="seek-bar" value="0" step="0.01">
+            <div class="slider-row">
+                <button class="btn-step" id="step-back-btn">⏪ 退一格</button>
+                <input type="range" id="seek-bar" value="0" step="0.01">
+                <button class="btn-step" id="step-forward-btn">進一格 ⏩</button>
+            </div>
             <div class="btn-row">
-                <button class="btn-blue btn-rev" id="rev-slow-01-btn">-0.1x 倒帶</button>
+                <button class="btn-blue btn-rev" id="rev-slow-01-btn">-0.1x 倒帶看</button>
                 <button class="btn-blue" id="slow-01-btn">0.1x 極慢</button>
                 <button class="btn-blue" id="slow-25-btn">0.25x 慢</button>
                 <button class="btn-blue" id="normal-btn">1.0x 正常</button>
@@ -180,7 +204,6 @@
     let selectedLanes = [];
     let raceResults = []; 
     
-    // 影片製作變數
     let isRenderTriggered = false;
     let isRendering = false;
     let finishedRenderBlob = null;
@@ -217,32 +240,19 @@
     }
 
     document.querySelectorAll('.lane-toggle').forEach(btn => {
-        btn.onclick = () => { 
-            btn.classList.toggle('active'); 
-            updateLaneUI(btn);
-        };
+        btn.onclick = () => { btn.classList.toggle('active'); updateLaneUI(btn); };
     });
 
     document.getElementById('select-all-btn').onclick = () => {
-        document.querySelectorAll('.lane-toggle').forEach(btn => {
-            btn.classList.add('active');
-            updateLaneUI(btn);
-        });
+        document.querySelectorAll('.lane-toggle').forEach(btn => { btn.classList.add('active'); updateLaneUI(btn); });
     };
 
     readyBtn.onclick = () => {
         selectedLanes = [];
-        document.querySelectorAll('.lane-toggle.active').forEach(btn => {
-            selectedLanes.push(btn.getAttribute('data-lane'));
-        });
-        
-        if (selectedLanes.length === 0) {
-            alert("請至少選擇一個參賽跑道！");
-            return;
-        }
+        document.querySelectorAll('.lane-toggle.active').forEach(btn => { selectedLanes.push(btn.getAttribute('data-lane')); });
+        if (selectedLanes.length === 0) { alert("請至少選擇一個參賽跑道！"); return; }
 
         recordedChunks = [];
-        // 清空之前的製作狀態
         isRenderTriggered = false;
         isRendering = false;
         finishedRenderBlob = null;
@@ -266,16 +276,10 @@
     };
 
     cancelBtn.onclick = () => {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.onstop = null; 
-            mediaRecorder.stop();
-        }
-        isRecording = false;
-        recordedChunks = [];
-        recordingControls.style.display = 'none';
-        recordingIndicator.style.display = 'none';
-        topSettings.style.display = 'flex';
-        readyBtn.style.display = 'block';
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') { mediaRecorder.onstop = null; mediaRecorder.stop(); }
+        isRecording = false; recordedChunks = [];
+        recordingControls.style.display = 'none'; recordingIndicator.style.display = 'none';
+        topSettings.style.display = 'flex'; readyBtn.style.display = 'block';
     };
 
     startBtn.onclick = () => {
@@ -345,7 +349,7 @@
         btnElement.classList.add('recorded');
         renderResultsTable();
 
-        // ★ 自動觸發影片製作：當所有跑道都完成判定時 ★
+        // 所有跑道都完成判定時自動啟動影片製作
         if (raceResults.length === selectedLanes.length && !isRenderTriggered) {
             startVideoRender();
         }
@@ -363,62 +367,46 @@
             tr.innerHTML = `<td>${index + 1}</td><td>第 ${result.lane} 道</td><td style="font-family: monospace; font-size:1.1rem;">${result.time.toFixed(3)}</td>`;
             resultsTbody.appendChild(tr);
         });
-
-        const tableContainer = document.querySelector('.table-container');
-        if (tableContainer) {
-            setTimeout(() => { tableContainer.scrollTop = tableContainer.scrollHeight; }, 50); 
-        }
+        
+        // 成績更新時自動往下捲動讓最新的成績可見
+        setTimeout(() => { playbackContainer.scrollTop = playbackContainer.scrollHeight; }, 100);
     }
 
-    // ★ 影片播放與速度控制器 (重製版 -0.1x 倒帶，確保畫面順暢刷新) ★
-    let reverseAnimationId = null;
-    let lastReverseTime = null;
-    let lastRenderedTime = 0;
-    let virtualCurrentTime = 0;
+    // ★ 影片播放與速度控制器 (重製版倒帶邏輯與微調按鈕) ★
+    let isReversing = false;
 
     playbackVideo.onloadedmetadata = () => { seekBar.max = playbackVideo.duration; };
-    playbackVideo.ontimeupdate = () => { if(!reverseAnimationId) seekBar.value = playbackVideo.currentTime; };
+    playbackVideo.ontimeupdate = () => { if(!isReversing) seekBar.value = playbackVideo.currentTime; };
     
     seekBar.oninput = () => { 
-        cancelAnimationFrame(reverseAnimationId); 
+        isReversing = false; 
         playbackVideo.currentTime = seekBar.value; 
     };
 
-    function reversePlayLoop(timestamp) {
-        if (!lastReverseTime) {
-            lastReverseTime = timestamp;
-            virtualCurrentTime = playbackVideo.currentTime;
-        }
-        const delta = timestamp - lastReverseTime;
-        lastReverseTime = timestamp;
-        
-        // 虛擬時間往回扣
-        virtualCurrentTime -= (delta / 1000) * 0.1;
-        seekBar.value = virtualCurrentTime; 
-
-        // 每隔 ~80 毫秒強制瀏覽器重新尋找畫格，避免硬體解碼器被淹沒而當機
-        if (timestamp - lastRenderedTime > 80) {
-            playbackVideo.currentTime = virtualCurrentTime;
-            lastRenderedTime = timestamp;
-        }
-
-        if (virtualCurrentTime <= 0) {
-            playbackVideo.currentTime = 0;
-            playbackVideo.pause();
-            cancelAnimationFrame(reverseAnimationId);
-            return;
-        }
-        reverseAnimationId = requestAnimationFrame(reversePlayLoop);
-    }
+    // 透過監聽 seeked 事件，強制手機瀏覽器乖乖畫出倒退的影格
+    playbackVideo.addEventListener('seeked', () => {
+        if (!isReversing) return;
+        seekBar.value = playbackVideo.currentTime;
+        // 等待約 80 毫秒，讓手機硬體有足夠時間把這格畫面渲染到螢幕上，再進行下一步退格
+        setTimeout(() => {
+            if (isReversing && playbackVideo.currentTime > 0) {
+                // 每次退回 0.03 秒，產生約 -0.3x 的視覺倒帶感
+                playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 0.03);
+            } else if (playbackVideo.currentTime <= 0) {
+                isReversing = false;
+                currentSpeedLabel.innerText = "速度: 暫停";
+            }
+        }, 80); 
+    });
 
     function changeSpeed(rate) {
-        cancelAnimationFrame(reverseAnimationId);
-        lastReverseTime = null;
-
+        isReversing = false; 
         if (rate < 0) {
-            playbackVideo.pause(); // 必須先暫停原生播放
-            currentSpeedLabel.innerText = `速度: ${rate}x`;
-            reverseAnimationId = requestAnimationFrame(reversePlayLoop);
+            playbackVideo.pause();
+            isReversing = true;
+            currentSpeedLabel.innerText = `速度: 倒帶看`;
+            // 觸發倒帶循環的第一步
+            playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 0.03);
         } else {
             playbackVideo.playbackRate = rate;
             currentSpeedLabel.innerText = `速度: ${rate}x`;
@@ -426,16 +414,29 @@
         }
     }
 
+    // 微調按鈕邏輯：按一次只精準移動 0.05 秒（一格）
+    document.getElementById('step-back-btn').onclick = () => {
+        isReversing = false;
+        playbackVideo.pause();
+        playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 0.05);
+        currentSpeedLabel.innerText = "速度: 暫停";
+    };
+    
+    document.getElementById('step-forward-btn').onclick = () => {
+        isReversing = false;
+        playbackVideo.pause();
+        playbackVideo.currentTime = Math.min(playbackVideo.duration, playbackVideo.currentTime + 0.05);
+        currentSpeedLabel.innerText = "速度: 暫停";
+    };
+
     document.getElementById('rev-slow-01-btn').onclick = () => changeSpeed(-0.1);
     document.getElementById('slow-01-btn').onclick = () => changeSpeed(0.1);
     document.getElementById('slow-25-btn').onclick = () => changeSpeed(0.25);
     document.getElementById('normal-btn').onclick = () => changeSpeed(1.0);
     
-    // 重新測驗增加防呆警告
+    // 重新測驗防呆
     document.getElementById('restart-btn').onclick = () => { 
-        if(confirm("確定要重新測驗嗎？尚未下載的成績與影片將會遺失！")) {
-            location.reload(); 
-        }
+        if(confirm("確定要重新測驗嗎？尚未下載的成績與影片將會遺失！")) { location.reload(); }
     };
 
     // 雙指縮放與平移邏輯
@@ -483,7 +484,7 @@
     }
 
     videoWrapper.onclick = (e) => {
-        cancelAnimationFrame(reverseAnimationId); 
+        isReversing = false; // 點擊畫面時解除倒帶
         if (playbackVideo.paused) {
             playbackVideo.play();
             playPauseOverlay.style.display = 'none';
@@ -512,7 +513,6 @@
         link.click();
     };
 
-    // ★ 影片背景製作核心模組 ★
     function startVideoRender() {
         if (recordedChunks.length === 0 || isRenderTriggered) return;
         isRenderTriggered = true;
@@ -537,13 +537,8 @@
             renderCanvas.height = sourceVideo.videoHeight;
             
             let stream;
-            try {
-                stream = renderCanvas.captureStream(30); 
-            } catch(e) {
-                console.error(e);
-                btn.innerText = "瀏覽器不支援影片製作";
-                return;
-            }
+            try { stream = renderCanvas.captureStream(30); } 
+            catch(e) { console.error(e); btn.innerText = "瀏覽器不支援影片製作"; return; }
             
             let exporter;
             try { exporter = new MediaRecorder(stream, { mimeType: 'video/webm' }); } 
@@ -561,7 +556,6 @@
             };
 
             sourceVideo.onended = () => { exporter.stop(); };
-
             exporter.start();
             sourceVideo.play();
             
@@ -572,7 +566,6 @@
             function drawFrame() {
                 if (sourceVideo.ended) return;
                 
-                // 動態更新按鈕上的進度百分比
                 let progress = Math.min(99, Math.floor((sourceVideo.currentTime / sourceVideo.duration) * 100));
                 btn.innerText = `⏳ 製作中... ${progress}%`;
 
@@ -609,25 +602,19 @@
                     renderCtx.fillText(text, centerX, y);
                 });
 
-                if (!sourceVideo.paused) {
-                    requestAnimationFrame(drawFrame);
-                }
+                if (!sourceVideo.paused) { requestAnimationFrame(drawFrame); }
             }
-            
             sourceVideo.onplay = () => drawFrame();
         };
     }
 
-    // 按鈕手動觸發（如果老師還沒標完所有成績，就提早點擊按鈕時觸發）
     document.getElementById('export-video-btn').onclick = () => {
         if (finishedRenderBlob) {
-            // 如果已經製作完成了，直接觸發下載
             const link = document.createElement("a");
             link.href = URL.createObjectURL(finishedRenderBlob);
             link.download = `${getFileName()}_成績影片.webm`;
             link.click();
         } else if (!isRenderTriggered) {
-            // 如果還沒開始製作，強制開始
             startVideoRender();
         }
     };
