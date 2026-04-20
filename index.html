@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title> 短距離計時 (專業版 V12)</title>
+    <title> 短距離計時 (專業版)</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; touch-action: manipulation; }
         
@@ -53,7 +53,7 @@
         
         .playback-controls { 
             width: 95%; margin: 5px auto; text-align: center; 
-            flex: 0 0 auto; 
+            flex: 0 0 auto; /* 鎖死高度 */
         }
         #playback-hint { font-size: 0.85rem; color: #aaa; text-align: center; margin-top: 5px; }
         
@@ -66,15 +66,25 @@
         .btn-rev { background: #E64A19; } 
         #current-speed-label { color: #34C759; font-weight: bold; font-size: 0.95rem; margin-left: 5px; }
 
+        /* ★ 新增：固定於上方的跑道按鈕區 ★ */
+        #judge-header {
+            width: 95%; margin: 10px auto 5px auto; 
+            background: #222; padding: 10px; border-radius: 8px; box-sizing: border-box;
+            flex: 0 0 auto; /* 鎖死高度，不允許縮放或滑動 */
+        }
+        #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 8px; text-align: center; }
+        #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .judge-lane-btn { padding: 10px; font-size: 1.1rem; border-radius: 8px; background: #FF9500; color: white; border: none; font-weight: bold; flex: 1; text-align: center; min-width: 60px; }
+        .judge-lane-btn.recorded { background: #34C759; }
+
+        /* 僅剩成績表與匯出按鈕的滾動區 */
         #bottom-scroll-area {
             flex: 1 1 0; 
             overflow-y: auto; 
             direction: rtl; 
             width: 100%;
-            margin-top: 5px;
         }
-
-        #judge-area { 
+        #judge-results-area { 
             direction: ltr; 
             width: 95%; margin: 0 auto 30px auto; 
             background: #222; padding: 10px; 
@@ -82,11 +92,6 @@
             display: flex; flex-direction: column; 
             height: auto; 
         }
-        
-        #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 5px; text-align: center; }
-        #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-        .judge-lane-btn { padding: 10px; font-size: 1.1rem; border-radius: 8px; background: #FF9500; color: white; border: none; font-weight: bold; flex: 1; text-align: center; min-width: 60px; }
-        .judge-lane-btn.recorded { background: #34C759; }
 
         .table-container { 
             margin-bottom: 15px; border: 1px solid #555; border-radius: 5px; background: #111; 
@@ -163,11 +168,13 @@
             </div>
         </div>
 
+        <div id="judge-header">
+            <div id="judge-title">請在選手壓線瞬間，點擊對應跑道紀錄成績</div>
+            <div id="playback-lane-btns"></div> 
+        </div>
+
         <div id="bottom-scroll-area">
-            <div id="judge-area">
-                <div id="judge-title">請在選手壓線瞬間，點擊對應跑道紀錄成績</div>
-                <div id="playback-lane-btns"></div> 
-                
+            <div id="judge-results-area">
                 <div class="table-container">
                     <table id="results-table">
                         <thead>
@@ -217,14 +224,12 @@
     let isRendering = false;
     let finishedRenderBlob = null;
 
-    // ★ 解決發燙與黑頻：加入硬體效能限制 ★
     async function initCamera(deviceId = null) {
         if (currentStream) {
             currentStream.getTracks().forEach(t => t.stop());
-            cameraFeed.srcObject = null; // 徹底清空舊串流緩衝，防止黑屏
+            cameraFeed.srcObject = null;
         }
         
-        // 限制為 1280x720 30fps，避免手機因 4K 編碼而超載發燙
         const constraints = { 
             video: deviceId 
                 ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } 
@@ -239,7 +244,6 @@
         } catch (e) { 
             console.warn("指定畫質啟動失敗，嘗試降級啟動...", e);
             try {
-                // 如果手機不接受指定畫質，退回最基本的相機啟動要求
                 currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 cameraFeed.srcObject = currentStream;
                 if (!deviceId) await populateCameras();
@@ -396,8 +400,6 @@
             tr.innerHTML = `<td>${index + 1}</td><td>第 ${result.lane} 道</td><td style="font-family: monospace; font-size:1.1rem;">${result.time.toFixed(3)}</td>`;
             resultsTbody.appendChild(tr);
         });
-        
-        // ★ 已移除自動下拉捲動功能，將畫面穩定保留在跑道按鈕處 ★
     }
 
     let isReversing = false;
