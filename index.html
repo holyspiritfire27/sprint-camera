@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>短距離計時 (專業版 V10)</title>
+    <title> 短距離計時 (專業版 V11)</title>
     <style>
         /* 基礎設定，防止畫面整體被滑動 */
         body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; touch-action: manipulation; }
@@ -31,25 +31,27 @@
         /* 操作按鈕 */
         #ready-btn { position: absolute; top: 50%; padding: 15px 30px; font-size: 1.5rem; font-weight: bold; border-radius: 10px; border: 2px solid white; background: #FF9500; color: white; z-index: 40; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         
-        #recording-controls { position: absolute; bottom: 30px; right: 30px; display: none; align-items: center; gap: 15px; z-index: 40; }
-        #cancel-btn { padding: 15px 20px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; border: 2px solid white; background: #888; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        /* 錄影控制列 (上移並修改為底部對齊) */
+        #recording-controls { position: absolute; bottom: 15%; right: 30px; display: none; align-items: flex-end; gap: 15px; z-index: 40; }
+        #cancel-btn { padding: 10px 20px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; border: 2px solid white; background: #888; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.5); line-height: 1.4; }
         #start-btn { padding: 35px 55px; font-size: 3rem; font-weight: bold; border-radius: 20px; border: 4px solid white; background: #34C759; color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
 
-        #stop-record-btn { position: absolute; bottom: 5%; padding: 15px 30px; font-size: 1.3rem; font-weight: bold; border-radius: 10px; border: none; background: #FF3B30; color: white; display: none; z-index: 40; }
+        /* 結束鍵同步上移 */
+        #stop-record-btn { position: absolute; bottom: 15%; padding: 15px 30px; font-size: 1.3rem; font-weight: bold; border-radius: 10px; border: none; background: #FF3B30; color: white; display: none; z-index: 40; }
 
         #timer-display { position: absolute; top: 150px; right: 20px; font-size: 3.5rem; font-family: 'Courier New', monospace; color: #FFD700; text-shadow: 2px 2px 4px #000; display: none; z-index: 10; font-weight: bold; }
 
         /* ★ 佈局大升級：嚴格鎖死外框，不允許整體滑動 ★ */
         #playback-container { 
             display: none; position: absolute; top: 0; left: 0; 
-            width: 100vw; height: 100dvh; /* 嚴格滿版 */
+            width: 100vw; height: 100dvh; 
             background: #111; flex-direction: column; z-index: 50; 
-            overflow: hidden; /* 絕對不允許外層滾動 */
+            overflow: hidden; 
         }
         
-        /* 影片區：絕對鎖死高度 (40vh)，禁止縮放 */
+        /* 影片區：絕對鎖死高度，禁止縮放 */
         #playback-video-wrapper { 
-            width: 100%; height: 40vh; flex: 0 0 40vh; /* flex-grow: 0, flex-shrink: 0 */
+            width: 100%; height: 40vh; flex: 0 0 40vh; 
             background: #000; display: flex; justify-content: center; align-items: center; 
             overflow: hidden; touch-action: none; position: relative;
         }
@@ -74,32 +76,42 @@
         .btn-rev { background: #E64A19; } 
         #current-speed-label { color: #34C759; font-weight: bold; font-size: 0.95rem; margin-left: 5px; }
 
-        /* 判定與成績區：自動吸收剩餘的垂直空間 */
+        /* ★ 新增：左側滾動滑桿容器 ★ */
+        #bottom-scroll-area {
+            flex: 1 1 0; /* 吸收下方所有剩餘空間 */
+            overflow-y: auto; /* 啟動垂直滾動 */
+            direction: rtl; /* 【黑科技】將滾動條強制移到左側 */
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        /* 判定區被包裹在滾動容器內，自然長高 */
         #judge-area { 
-            width: 95%; margin: 5px auto 10px auto; background: #222; padding: 10px; 
+            direction: ltr; /* 將內部內容方向翻轉回正常的左到右 */
+            width: 95%; margin: 0 auto 30px auto; 
+            background: #222; padding: 10px; 
             border-radius: 8px; box-sizing: border-box; 
             display: flex; flex-direction: column; 
-            flex: 1 1 0; /* 吸收所有剩餘空間 */
-            min-height: 0; /* 關鍵：防止內容過長撐爆外框 */
+            height: auto; /* 解除高度限制，讓表格撐開 */
         }
-        #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 5px; text-align: center; flex: 0 0 auto; }
-        #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; flex: 0 0 auto; }
+        
+        #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 5px; text-align: center; }
+        #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
         .judge-lane-btn { padding: 10px; font-size: 1.1rem; border-radius: 8px; background: #FF9500; color: white; border: none; font-weight: bold; flex: 1; text-align: center; min-width: 60px; }
         .judge-lane-btn.recorded { background: #34C759; }
 
-        /* ★ 成績表容器：這是唯一允許內部滾動的地方 ★ */
+        /* 表格容器不再有內部滾動，與判斷區一起滑動 */
         .table-container { 
-            flex: 1 1 0; /* 填滿判定區剩下的空間 */
-            overflow-y: auto; /* 內容太多時，只在這裡出現捲軸 */
-            margin-bottom: 10px; border: 1px solid #555; border-radius: 5px; background: #111; 
-            min-height: 0; 
+            margin-bottom: 15px; border: 1px solid #555; border-radius: 5px; background: #111; 
+            overflow: visible; 
         }
         table { width: 100%; border-collapse: collapse; text-align: center; color: white; }
         th, td { border: 1px solid #444; padding: 8px; }
+        /* 表頭依然會黏在上面，方便對照 */
         th { background: #333; position: sticky; top: 0; z-index: 2; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.5); }
         
-        /* 匯出按鈕列：固定在底部 */
-        .export-row { display: flex; justify-content: space-around; gap: 10px; flex: 0 0 auto; }
+        /* 匯出按鈕列：跟著表格在最底下 */
+        .export-row { display: flex; justify-content: space-around; gap: 10px; margin-top: 10px;}
         .btn-export { background: #AF52DE; font-size: 1.1rem; padding: 10px; border-radius: 8px; border: none; color: white; flex: 1; font-weight: bold; transition: background 0.3s;}
         .btn-export.video { background: #FF2D55; }
         .btn-export:disabled { background: #555; color: #ccc; cursor: not-allowed; }
@@ -133,7 +145,7 @@
         <button id="ready-btn">預備 (開始錄影)</button>
         
         <div id="recording-controls">
-            <button id="cancel-btn">回上一步</button>
+            <button id="cancel-btn">回上<br>一步</button>
             <button id="start-btn">開始</button>
         </div>
 
@@ -167,22 +179,24 @@
             </div>
         </div>
 
-        <div id="judge-area">
-            <div id="judge-title">請在選手壓線瞬間，點擊對應跑道紀錄成績</div>
-            <div id="playback-lane-btns"></div> 
-            
-            <div class="table-container">
-                <table id="results-table">
-                    <thead>
-                        <tr><th>名次</th><th>跑道</th><th>成績 (秒)</th></tr>
-                    </thead>
-                    <tbody id="results-tbody"></tbody>
-                </table>
-            </div>
+        <div id="bottom-scroll-area">
+            <div id="judge-area">
+                <div id="judge-title">請在選手壓線瞬間，點擊對應跑道紀錄成績</div>
+                <div id="playback-lane-btns"></div> 
+                
+                <div class="table-container">
+                    <table id="results-table">
+                        <thead>
+                            <tr><th>名次</th><th>跑道</th><th>成績 (秒)</th></tr>
+                        </thead>
+                        <tbody id="results-tbody"></tbody>
+                    </table>
+                </div>
 
-            <div class="export-row">
-                <button class="btn-export" id="export-excel-btn">📊 下載成績單</button>
-                <button class="btn-export video" id="export-video-btn">🎬 製作影片檔</button>
+                <div class="export-row">
+                    <button class="btn-export" id="export-excel-btn">📊 下載成績單</button>
+                    <button class="btn-export video" id="export-video-btn">🎬 製作影片檔</button>
+                </div>
             </div>
         </div>
 
@@ -220,7 +234,6 @@
     let isRendering = false;
     let finishedRenderBlob = null;
 
-    // 相機初始化
     async function initCamera(deviceId = null) {
         if (currentStream) currentStream.getTracks().forEach(t => t.stop());
         const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" }, audio: false };
@@ -379,10 +392,10 @@
             resultsTbody.appendChild(tr);
         });
         
-        // 確保新增成績時，內部的成績表會自動滾到最下面
-        const tableContainer = document.querySelector('.table-container');
-        if (tableContainer) {
-            setTimeout(() => { tableContainer.scrollTop = tableContainer.scrollHeight; }, 50);
+        // 確保新增成績時，左側滑動容器會自動滾到最底下
+        const scrollArea = document.getElementById('bottom-scroll-area');
+        if (scrollArea) {
+            setTimeout(() => { scrollArea.scrollTop = scrollArea.scrollHeight; }, 50);
         }
     }
 
@@ -424,7 +437,6 @@
         }
     }
 
-    // ★ 微調進退格修改為 0.01 秒 ★
     document.getElementById('step-back-btn').onclick = () => {
         isReversing = false;
         playbackVideo.pause();
