@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title> 短距離計時 (專業版)</title>
+    <title>短距離終點計時 (專業版)</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; touch-action: manipulation; }
         
@@ -53,7 +53,7 @@
         
         .playback-controls { 
             width: 95%; margin: 5px auto; text-align: center; 
-            flex: 0 0 auto; /* 鎖死高度 */
+            flex: 0 0 auto; 
         }
         #playback-hint { font-size: 0.85rem; color: #aaa; text-align: center; margin-top: 5px; }
         
@@ -66,11 +66,11 @@
         .btn-rev { background: #E64A19; } 
         #current-speed-label { color: #34C759; font-weight: bold; font-size: 0.95rem; margin-left: 5px; }
 
-        /* ★ 新增：固定於上方的跑道按鈕區 ★ */
+        /* 固定於上方的跑道按鈕區 */
         #judge-header {
             width: 95%; margin: 10px auto 5px auto; 
             background: #222; padding: 10px; border-radius: 8px; box-sizing: border-box;
-            flex: 0 0 auto; /* 鎖死高度，不允許縮放或滑動 */
+            flex: 0 0 auto; 
         }
         #judge-title { font-size: 1rem; color: #FFD700; margin-bottom: 8px; text-align: center; }
         #playback-lane-btns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
@@ -83,6 +83,7 @@
             overflow-y: auto; 
             direction: rtl; 
             width: 100%;
+            scroll-behavior: smooth; /* 加入平滑滾動效果 */
         }
         #judge-results-area { 
             direction: ltr; 
@@ -213,6 +214,7 @@
     const playPauseOverlay = document.getElementById('play-pause-overlay');
     const playbackLaneBtns = document.getElementById('playback-lane-btns');
     const resultsTbody = document.getElementById('results-tbody');
+    const bottomScrollArea = document.getElementById('bottom-scroll-area');
 
     let currentStream, mediaRecorder, recordedChunks = [];
     let isRecording = false;
@@ -223,6 +225,7 @@
     let isRenderTriggered = false;
     let isRendering = false;
     let finishedRenderBlob = null;
+    let lastRecordedLane = null; // ★ 記錄剛按下的跑道 ★
 
     async function initCamera(deviceId = null) {
         if (currentStream) {
@@ -290,6 +293,7 @@
         isRenderTriggered = false;
         isRendering = false;
         finishedRenderBlob = null;
+        lastRecordedLane = null;
         document.getElementById('export-video-btn').innerText = "🎬 製作影片檔";
         document.getElementById('export-video-btn').style.background = "#FF2D55";
 
@@ -380,6 +384,7 @@
         if (existing) { existing.time = timeInSeconds; } 
         else { raceResults.push({ lane: lane, time: timeInSeconds }); }
         
+        lastRecordedLane = lane; // 記錄這次按下的跑道
         btnElement.classList.add('recorded');
         renderResultsTable();
 
@@ -395,11 +400,29 @@
             resultsTbody.innerHTML = `<tr><td colspan="3">尚未標記成績</td></tr>`;
             return;
         }
+
+        let targetRow = null; // 用來抓取剛剛新增/更新的那一行
+
         raceResults.forEach((result, index) => {
             let tr = document.createElement('tr');
             tr.innerHTML = `<td>${index + 1}</td><td>第 ${result.lane} 道</td><td style="font-family: monospace; font-size:1.1rem;">${result.time.toFixed(3)}</td>`;
+            
+            // ★ 如果這行是剛按下的那道，給它一個閃爍特效，並標記為目標 ★
+            if (result.lane === lastRecordedLane) {
+                targetRow = tr;
+                tr.style.transition = 'background-color 0.5s ease-out';
+                tr.style.backgroundColor = 'rgba(52, 199, 89, 0.5)'; // 閃爍綠光
+                setTimeout(() => { tr.style.backgroundColor = 'transparent'; }, 800);
+            }
             resultsTbody.appendChild(tr);
         });
+
+        // ★ 自動滾動：將目標行滑動至畫面可見範圍（自動把表格往上推） ★
+        if (targetRow) {
+            setTimeout(() => {
+                targetRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 50); // 給瀏覽器一點時間渲染 DOM
+        }
     }
 
     let isReversing = false;
