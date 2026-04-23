@@ -66,7 +66,6 @@
         .btn-rev { background: #E64A19; } 
         #current-speed-label { color: #34C759; font-weight: bold; font-size: 0.95rem; margin-left: 5px; }
 
-        /* 固定於上方的跑道按鈕區 */
         #judge-header {
             width: 95%; margin: 10px auto 5px auto; 
             background: #222; padding: 10px; border-radius: 8px; box-sizing: border-box;
@@ -77,13 +76,12 @@
         .judge-lane-btn { padding: 10px; font-size: 1.1rem; border-radius: 8px; background: #FF9500; color: white; border: none; font-weight: bold; flex: 1; text-align: center; min-width: 60px; }
         .judge-lane-btn.recorded { background: #34C759; }
 
-        /* 僅剩成績表與匯出按鈕的滾動區 */
         #bottom-scroll-area {
             flex: 1 1 0; 
             overflow-y: auto; 
             direction: rtl; 
             width: 100%;
-            scroll-behavior: smooth; /* 加入平滑滾動效果 */
+            scroll-behavior: smooth; 
         }
         #judge-results-area { 
             direction: ltr; 
@@ -225,7 +223,7 @@
     let isRenderTriggered = false;
     let isRendering = false;
     let finishedRenderBlob = null;
-    let lastRecordedLane = null; // ★ 記錄剛按下的跑道 ★
+    let lastRecordedLane = null; 
 
     async function initCamera(deviceId = null) {
         if (currentStream) {
@@ -384,7 +382,7 @@
         if (existing) { existing.time = timeInSeconds; } 
         else { raceResults.push({ lane: lane, time: timeInSeconds }); }
         
-        lastRecordedLane = lane; // 記錄這次按下的跑道
+        lastRecordedLane = lane; 
         btnElement.classList.add('recorded');
         renderResultsTable();
 
@@ -401,27 +399,25 @@
             return;
         }
 
-        let targetRow = null; // 用來抓取剛剛新增/更新的那一行
+        let targetRow = null; 
 
         raceResults.forEach((result, index) => {
             let tr = document.createElement('tr');
             tr.innerHTML = `<td>${index + 1}</td><td>第 ${result.lane} 道</td><td style="font-family: monospace; font-size:1.1rem;">${result.time.toFixed(3)}</td>`;
             
-            // ★ 如果這行是剛按下的那道，給它一個閃爍特效，並標記為目標 ★
             if (result.lane === lastRecordedLane) {
                 targetRow = tr;
                 tr.style.transition = 'background-color 0.5s ease-out';
-                tr.style.backgroundColor = 'rgba(52, 199, 89, 0.5)'; // 閃爍綠光
+                tr.style.backgroundColor = 'rgba(52, 199, 89, 0.5)'; 
                 setTimeout(() => { tr.style.backgroundColor = 'transparent'; }, 800);
             }
             resultsTbody.appendChild(tr);
         });
 
-        // ★ 自動滾動：將目標行滑動至畫面可見範圍（自動把表格往上推） ★
         if (targetRow) {
             setTimeout(() => {
                 targetRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 50); // 給瀏覽器一點時間渲染 DOM
+            }, 50); 
         }
     }
 
@@ -528,12 +524,21 @@
         playbackVideo.style.transform = `translate(${currentTranslate.x}px, ${currentTranslate.y}px) scale(${currentScale})`;
     }
 
+    // ★ 修正此處的點擊邏輯 ★
     videoWrapper.onclick = (e) => {
-        isReversing = false; 
-        if (playbackVideo.paused) {
+        if (isReversing) {
+            // 如果正在倒帶中，點擊螢幕應該是「暫停」倒帶
+            isReversing = false;
+            currentSpeedLabel.innerText = "速度: 暫停";
+            playPauseOverlay.innerText = "⏸️";
+            playPauseOverlay.style.display = 'block';
+            setTimeout(() => { playPauseOverlay.style.display = 'none'; }, 800);
+        } else if (playbackVideo.paused) {
+            // 如果是暫停狀態，點擊則播放
             playbackVideo.play();
             playPauseOverlay.style.display = 'none';
         } else {
+            // 如果正常播放中，點擊則暫停
             playbackVideo.pause();
             playPauseOverlay.innerText = "⏸️";
             playPauseOverlay.style.display = 'block';
